@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Project Inferno POS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { color-scheme: dark; }
+    body { font-family: 'Inter', sans-serif; background: #0f172a; }
+    .active-btn { box-shadow: 0 0 15px rgba(20, 184, 166, 0.3); }
+    .modal-overlay { backdrop-filter: blur(8px); background: rgba(2, 6, 23, 0.65); }
+    .modal-in { animation: modalIn .28s ease-out forwards; }
+    .modal-out { animation: modalOut .22s ease-in forwards; }
+    @keyframes modalIn { from { opacity: 0; transform: scale(.94) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+    @keyframes modalOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.9); } }
+
+    .slide-down-enter { max-height: 0; opacity: 0; transform: translateY(-8px); overflow: hidden; transition: max-height .3s ease-out, opacity .3s ease-out, transform .3s ease-out; }
+    .slide-down-enter.open { max-height: 120px; opacity: 1; transform: translateY(0); }
+    .flip-out { animation: flipOut .3s ease forwards; transform-origin: top center; }
+    @keyframes flipOut { from { opacity: 1; transform: rotateX(0deg); } to { opacity: 0; transform: rotateX(90deg); } }
+
+    .editable-wrap .edit-icon { opacity: 0; transition: opacity .18s ease; }
+    .editable-wrap:hover .edit-icon { opacity: 1; }
+    .editable-input { background: rgba(15,23,42,.85); border: 1px solid #14b8a6; color: #e2e8f0; border-radius: .5rem; padding: .25rem .5rem; }
+
+    .version-tag { animation: tagPulse 2.4s ease-in-out infinite; }
+    .version-tag.updating { color: #f59e0b; border-color: rgba(245,158,11,.8); box-shadow: 0 0 14px rgba(245,158,11,.35); }
+    @keyframes tagPulse { 0%,100% { opacity:.58 } 50% { opacity:1 } }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen">
+  <div id="lockdown" class="hidden fixed inset-0 z-50 bg-black text-amber-400 items-center justify-center text-3xl font-bold text-center p-8">RENTAL EXPIRED: CONTACT ARCHITECT</div>
+
+  <div class="max-w-7xl mx-auto p-6 space-y-5">
+    <header class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+      <div class="editable-wrap flex items-center gap-2">
+        <h1 id="shopNameText" class="text-2xl font-extrabold tracking-tight text-teal-400">Project Inferno Retail HQ</h1>
+        <button id="editShopBtn" class="edit-icon text-teal-300 hover:text-teal-100" title="Edit shop name">✎</button>
+      </div>
+      <div class="flex gap-2 items-center">
+        <input id="customerId" class="bg-slate-950 border border-slate-700 px-3 py-2 rounded-lg w-40" value="guest" placeholder="Customer" />
+        <input id="search" class="bg-slate-950 border border-slate-700 px-3 py-2 rounded-lg w-72" placeholder="Search item" />
+      </div>
+    </header>
+
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/75 p-4">
+        <h3 class="text-sm font-semibold text-teal-400 mb-2">Quick Actions</h3>
+        <div class="grid gap-2">
+          <button data-open-modal="addItemModal" class="active-btn rounded-lg bg-teal-700 hover:bg-teal-600 px-3 py-2">Add Item</button>
+          <button data-open-modal="customerModal" class="active-btn rounded-lg bg-slate-700 hover:bg-slate-600 px-3 py-2">Customer Profile</button>
+          <button data-open-modal="rotModal" class="active-btn rounded-lg bg-amber-600 hover:bg-amber-500 px-3 py-2 text-slate-900 font-semibold">Rot Alerts</button>
+        </div>
+        <p id="createStatus" class="text-xs text-slate-400 mt-3"></p>
+      </div>
+
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/75 p-4 lg:col-span-2">
+        <h3 class="text-sm font-semibold text-amber-400 mb-2">Profit vs Investment (7-day)</h3>
+        <canvas id="profitChart" height="120"></canvas>
+      </div>
+    </section>
+
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/75 p-4">
+        <h3 class="text-sm font-semibold text-teal-400 mb-2">Stock Velocity</h3>
+        <canvas id="velocityChart" height="130"></canvas>
+      </div>
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/75 p-4">
+        <h3 class="text-sm font-semibold text-amber-400 mb-2">Search Results</h3>
+        <ul id="results" class="space-y-2 text-sm"></ul>
+      </div>
+    </section>
+  </div>
+
+  <div id="licenseGate" class="hidden fixed inset-0 z-40 modal-overlay flex items-center justify-center p-6">
+    <div class="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900/95 p-5 space-y-3 modal-in">
+      <h2 class="text-lg font-semibold text-amber-400">License OTP Required</h2>
+      <input id="otpInput" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2" placeholder="6-digit OTP" />
+      <div class="flex gap-2">
+        <button id="otpSendBtn" class="active-btn flex-1 rounded-lg bg-teal-700 hover:bg-teal-600 px-3 py-2">Send OTP</button>
+        <button id="otpVerifyBtn" class="active-btn flex-1 rounded-lg bg-amber-600 hover:bg-amber-500 px-3 py-2 text-slate-900 font-semibold">Verify OTP</button>
+      </div>
+      <p id="otpStatus" class="text-xs text-slate-400"></p>
+    </div>
+  </div>
+
+  <div id="addItemModal" class="hidden fixed inset-0 z-30 modal-overlay flex items-center justify-center p-4 modal-overlay-target">
+    <div class="modal-card w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900/95 p-5 modal-in">
+      <h3 class="text-lg font-semibold text-teal-400 mb-3">Add Item</h3>
+      <div class="grid grid-cols-2 gap-2 text-sm">
+        <input id="newName" class="bg-slate-950 border border-slate-700 rounded px-2 py-2 col-span-2" placeholder="Item name" />
+        <select id="newType" class="bg-slate-950 border border-slate-700 rounded px-2 py-2"><option value="FIXED">Fixed</option><option value="VARIABLE">Variable</option></select>
+        <input id="newQty" type="number" step="0.001" class="bg-slate-950 border border-slate-700 rounded px-2 py-2" placeholder="Quantity" />
+
+        <div id="variableUnitWrap" class="col-span-2 slide-down-enter">
+          <select id="unitLabel" class="w-full rounded px-2 py-2 bg-teal-900/70 border border-teal-500 text-teal-100">
+            <option value="KG">KG</option><option value="LITERS">Liters</option><option value="GRAMS">Grams</option><option value="ML">ML</option>
+          </select>
+        </div>
+
+        <input id="newPurchase" type="number" step="0.0001" class="bg-slate-950 border border-slate-700 rounded px-2 py-2" placeholder="Purchase Price" />
+        <input id="newSelling" type="number" step="0.0001" class="bg-slate-950 border border-slate-700 rounded px-2 py-2" placeholder="Selling Price" />
+
+        <label class="col-span-2 text-xs text-slate-300">Perishable Days (1-10)</label>
+        <select id="perishableDays" class="col-span-2 bg-slate-950 border border-slate-700 rounded px-2 py-2 slide-down-enter open">
+          <option value="">Not perishable</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option>
+        </select>
+        <div id="perishableBadgeWrap" class="col-span-2"></div>
+      </div>
+      <div class="mt-4 flex justify-end gap-2">
+        <button data-close-modal class="rounded-lg px-3 py-2 bg-slate-700 hover:bg-slate-600">Cancel</button>
+        <button id="createItem" class="active-btn rounded-lg px-3 py-2 bg-teal-700 hover:bg-teal-600">Forge Item</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="customerModal" class="hidden fixed inset-0 z-30 modal-overlay flex items-center justify-center p-4 modal-overlay-target">
+    <div class="modal-card w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900/95 p-5 modal-in">
+      <h3 class="text-lg font-semibold text-teal-400 mb-3">Customer Profile</h3>
+      <input id="phoneInput" class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2" placeholder="+91xxxxxxxxxx"/>
+      <button id="cleanPhoneBtn" class="active-btn w-full mt-3 rounded-lg bg-teal-700 hover:bg-teal-600 py-2">Clean Phone</button>
+      <p id="phoneStatus" class="text-xs mt-2 text-slate-400"></p>
+      <div class="mt-4 text-right"><button data-close-modal class="rounded-lg px-3 py-2 bg-slate-700 hover:bg-slate-600">Close</button></div>
+    </div>
+  </div>
+
+  <div id="rotModal" class="hidden fixed inset-0 z-30 modal-overlay flex items-center justify-center p-4 modal-overlay-target">
+    <div class="modal-card w-full max-w-md rounded-2xl border border-amber-500/40 bg-slate-900/95 p-5 modal-in">
+      <h3 class="text-lg font-semibold text-amber-400 mb-3">Rot Alerts</h3>
+      <div id="alerts" class="space-y-2"></div>
+      <div class="mt-4 text-right"><button data-close-modal class="rounded-lg px-3 py-2 bg-slate-700 hover:bg-slate-600">Close</button></div>
+    </div>
+  </div>
+
+  <div id="versionBadge" class="version-tag fixed bottom-3 right-3 z-30 text-[11px] px-3 py-1 rounded-full border border-teal-400/60 text-teal-300 bg-slate-900/90">v1.0.1-Stable</div>
+
+<script>
+const searchInput=document.getElementById('search'),resultsEl=document.getElementById('results'),customerId=document.getElementById('customerId');
+const otpSendBtn=document.getElementById('otpSendBtn'),otpVerifyBtn=document.getElementById('otpVerifyBtn'),otpInput=document.getElementById('otpInput'),otpStatus=document.getElementById('otpStatus');
+const lockdown=document.getElementById('lockdown'),licenseGate=document.getElementById('licenseGate'),versionBadge=document.getElementById('versionBadge');
+const newType=document.getElementById('newType'),variableWrap=document.getElementById('variableUnitWrap'),perishableDays=document.getElementById('perishableDays'),perishableBadgeWrap=document.getElementById('perishableBadgeWrap');
+let lockedPerishableDays='';
+
+function openModal(id){ const m=document.getElementById(id); if(!m) return; m.classList.remove('hidden'); m.querySelector('.modal-card')?.classList.add('modal-in'); }
+function closeModal(modal){ const card=modal.querySelector('.modal-card'); card?.classList.remove('modal-in'); card?.classList.add('modal-out'); setTimeout(()=>{ modal.classList.add('hidden'); card?.classList.remove('modal-out'); }, 220); }
+document.querySelectorAll('[data-open-modal]').forEach(btn=>btn.onclick=()=>openModal(btn.dataset.openModal));
+document.querySelectorAll('[data-close-modal]').forEach(btn=>btn.onclick=()=>closeModal(btn.closest('.modal-overlay-target')));
+document.addEventListener('click',(e)=>{ const overlay=e.target.closest('.modal-overlay-target'); if(overlay && e.target===overlay){ closeModal(overlay); } });
+
+function enableInlineEditing(textEl, buttonEl){
+  buttonEl.onclick=()=>{
+    const input=document.createElement('input');
+    input.value=textEl.textContent.trim();
+    input.className='editable-input text-2xl font-extrabold';
+    textEl.replaceWith(input);
+    input.focus();
+    const finish=()=>{ const h=document.createElement('h1'); h.id=textEl.id; h.className=textEl.className; h.textContent=input.value.trim()||'Project Inferno Retail HQ'; input.replaceWith(h); bindShopEdit(); };
+    input.addEventListener('blur', finish, {once:true});
+    input.addEventListener('keydown', ev=>{ if(ev.key==='Enter'){ input.blur(); } });
+  };
+}
+function bindShopEdit(){ enableInlineEditing(document.getElementById('shopNameText'), document.getElementById('editShopBtn')); }
+bindShopEdit();
+
+function toggleVariable(){ variableWrap.classList.toggle('open', newType.value==='VARIABLE'); }
+newType.addEventListener('change', toggleVariable); toggleVariable();
+
+perishableDays.addEventListener('change',()=>{
+  const v=perishableDays.value;
+  if(!v){ lockedPerishableDays=''; perishableBadgeWrap.innerHTML=''; perishableDays.classList.add('open'); return; }
+  lockedPerishableDays=v;
+  perishableDays.classList.add('flip-out');
+  setTimeout(()=>{
+    perishableDays.classList.remove('flip-out','open');
+    perishableBadgeWrap.innerHTML=`<div class="rounded border border-amber-500 text-amber-300 px-3 py-2 font-semibold">Perishable: ${v} day(s)</div><button id="editPerishable" class="mt-2 text-xs text-slate-300 underline">Change</button>`;
+    document.getElementById('editPerishable').onclick=()=>{ lockedPerishableDays=''; perishableBadgeWrap.innerHTML=''; perishableDays.classList.add('open'); perishableDays.focus(); };
+  }, 300);
+});
+
+async function checkSecurity(){
+  const s=await (await fetch('/api/security/status')).json();
+  const locked=!s.license_active||s.lockdown_active;
+  licenseGate.classList.toggle('hidden',!locked||s.lockdown_active);
+  lockdown.classList.toggle('hidden',!s.lockdown_active);
+  lockdown.classList.toggle('flex',s.lockdown_active);
+}
+otpSendBtn.onclick=async()=>{const r=await (await fetch('/api/license/request-otp',{method:'POST'})).json();otpStatus.textContent=r.sent?'OTP sent.':'OTP send failed.';};
+otpVerifyBtn.onclick=async()=>{const r=await (await fetch('/api/license/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({otp:otpInput.value.trim()})})).json();otpStatus.textContent=r.valid?'Unlocked':'Invalid OTP';checkSecurity();};
+
+function renderEditableItemName(name,id){
+  return `<span class="group inline-flex items-center gap-1 editable-wrap"><span class="item-name" data-item-id="${id}">${name}</span><button class="edit-icon text-teal-300/80 hover:text-teal-100 text-xs" onclick="editItemName(this)">✎</button></span>`;
+}
+window.editItemName=(btn)=>{
+  const wrap=btn.closest('.editable-wrap'); const span=wrap.querySelector('.item-name');
+  const input=document.createElement('input'); input.value=span.textContent; input.className='editable-input text-sm';
+  span.replaceWith(input); input.focus();
+  const done=()=>{ const next=document.createElement('span'); next.className='item-name'; next.dataset.itemId=input.dataset?.itemId||''; next.textContent=input.value.trim()||'Unnamed'; input.replaceWith(next); };
+  input.addEventListener('blur',done,{once:true}); input.addEventListener('keydown',e=>{ if(e.key==='Enter') input.blur(); });
+}
+
+async function loadSearch(){
+  const q=searchInput.value.trim(); if(!q){resultsEl.innerHTML=''; return;}
+  const rows=await (await fetch(`/api/search?q=${encodeURIComponent(q)}&customer_id=${encodeURIComponent(customerId.value||'guest')}`)).json();
+  resultsEl.innerHTML=rows.map(it=>`<li class="bg-slate-950/80 rounded-lg p-2 border border-slate-700"><div class="font-medium">${renderEditableItemName(it.name,it.id)}</div><div class="text-xs text-slate-300">Score ${it.search_score||0}</div><button class="mt-1 text-xs text-teal-300 underline" onclick="addCart(${it.id})">Add to cart</button></li>`).join('');
+}
+async function addCart(id){ const d=await (await fetch('/api/cart/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customer_id:customerId.value||'guest',item_id:id})})).json(); if(d.suggestions?.length){ alert('Try together: '+d.suggestions.map(x=>x.name).join(', ')); } }
+
+async function createItem(){
+  const daysVal=lockedPerishableDays || perishableDays.value;
+  const payload={name:document.getElementById('newName').value.trim(),item_type:newType.value,quantity:Number(document.getElementById('newQty').value||0),purchase_price:Number(document.getElementById('newPurchase').value||0),selling_price:Number(document.getElementById('newSelling').value||0),is_perishable:Boolean(daysVal),days_to_rot:Number(daysVal||0),unit_label:newType.value==='VARIABLE'?document.getElementById('unitLabel').value:''};
+  const res=await fetch('/api/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const data=await res.json(); document.getElementById('createStatus').textContent=data.success?`Created #${data.item.id}`:(data.error||'Failed');
+  if(data.success) closeModal(document.getElementById('addItemModal'));
+}
+document.getElementById('createItem').onclick=createItem; searchInput.addEventListener('input',loadSearch);
+
+async function cleanPhone(){ const v=document.getElementById('phoneInput').value; const d=await (await fetch('/api/phone/clean',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:v})})).json(); const el=document.getElementById('phoneStatus'); el.textContent=d.valid?`Normalized: ${d.normalized}`:d.message; if(d.trigger_popup){ alert(d.message); } }
+document.getElementById('cleanPhoneBtn').onclick=cleanPhone;
+
+async function loadAlerts(){
+  const res=await fetch('/api/decay-alerts'); const alerts=await res.json();
+  document.getElementById('alerts').innerHTML=alerts.map(a=>`<div class="rounded p-2 border border-amber-500/40 bg-slate-950/60 ${a.days_left<=1?'animate-pulse':''}"><div class="font-medium text-amber-300">${a.name}</div><div class="text-xs text-slate-300">Days left: ${a.days_left} • ${a.suggested_discount}</div></div>`).join('') || '<p class="text-xs text-slate-400">No active alerts</p>';
+}
+
+const profitChart=new Chart(document.getElementById('profitChart'),{type:'line',data:{labels:[],datasets:[{label:'Income',data:[],borderColor:'#14b8a6',tension:.35},{label:'Investment',data:[],borderColor:'#f59e0b',tension:.35}]},options:{plugins:{legend:{labels:{color:'#e2e8f0'}}},scales:{x:{ticks:{color:'#cbd5e1'}},y:{ticks:{color:'#cbd5e1'}}}}});
+const velocityChart=new Chart(document.getElementById('velocityChart'),{type:'bar',data:{labels:[],datasets:[{label:'Units moved',data:[],backgroundColor:'#14b8a6'}]},options:{plugins:{legend:{labels:{color:'#e2e8f0'}}},scales:{x:{ticks:{color:'#cbd5e1'}},y:{ticks:{color:'#cbd5e1'}}}}});
+async function loadCharts(){ const pi=await (await fetch('/api/analytics/profit-investment')).json(); profitChart.data.labels=pi.labels||[]; profitChart.data.datasets[0].data=pi.income||[]; profitChart.data.datasets[1].data=pi.investment||[]; profitChart.update(); const sv=await (await fetch('/api/analytics/stock-velocity')).json(); velocityChart.data.labels=sv.labels||[]; velocityChart.data.datasets[0].data=sv.moved||[]; velocityChart.update(); }
+
+async function refreshVersionBadge(){
+  const data=await (await fetch('/api/version')).json();
+  versionBadge.textContent=data.version || 'v1.0.1-Stable';
+  versionBadge.classList.toggle('updating', Boolean(data.updating));
+}
+
+loadCharts(); loadAlerts(); checkSecurity(); refreshVersionBadge();
+setInterval(loadCharts,10000); setInterval(loadAlerts,10000); setInterval(checkSecurity,5000); setInterval(refreshVersionBadge,3000);
+</script>
+</body>
+</html>
