@@ -81,18 +81,23 @@ def xor_decrypt_b64(payload_b64: str, key: str) -> str:
     out = bytes([b ^ k[i % len(k)] for i, b in enumerate(data)])
     return out.decode("utf-8")
 
-
+def fetch_network_time_utc() -> float:
+    try:
+        req = Request("https://worldtimeapi.org/api/timezone/Etc/UTC", headers={"User-Agent": "Inferno/1.0"})
+        with urlopen(req, timeout=5) as resp:
+            payload = json.loads(resp.read().decode())
+        return datetime.fromisoformat(payload["utc_datetime"].replace("Z", "+00:00")).timestamp()
+    except Exception:
+        # If API fails, use system time so the app doesn't crash
+        return datetime.now(timezone.utc).timestamp()
 
 
 def send_discord_message(text: str) -> bool:
-    # --- CONFIGURATION ---
-    # REPLACE THIS with your actual Webhook URL from the Integrations tab
     url = "https://discord.com/api/webhooks/1473638855155646614/_CvpprByB513yWvNooT9VvshdCjMgcwU0E1YHJQ0y3ktjbHmmQXWJQ2MwpiEbPPmowxi"
     sovereign_id = "1466778663344144536" 
     
     otp_code = text.split(': ')[1].split('.')[0] if ': ' in text else text
 
-    # --- MINIMALIST PAYLOAD ---
     payload = json.dumps({
         "username": "Inferno System",
         "embeds": [{
@@ -100,13 +105,12 @@ def send_discord_message(text: str) -> bool:
             "description": f"Code: **{otp_code}**\nUser: `kovidhch`",
             "color": 0, 
             "footer": {
-                "text": f"Machine: {socket.gethostname()} | ID: {sovereign_id}"
+                "text": f"Sovereign Auth | Terminal: {socket.gethostname()}"
             },
             "timestamp": datetime.now(timezone.utc).isoformat()
         }]
     }).encode("utf-8")
 
-    # --- SENDING LOGIC ---
     req = Request(url, data=payload, method="POST", headers={"Content-Type": "application/json"})
     try:
         with urlopen(req, timeout=8):
