@@ -81,20 +81,21 @@ def xor_decrypt_b64(payload_b64: str, key: str) -> str:
     out = bytes([b ^ k[i % len(k)] for i, b in enumerate(data)])
     return out.decode("utf-8")
 
+DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1473638855155646614/_CvpprByB513yWvNooT9VvshdCjMgcwU0E1YHJQ0y3ktjbHmmQXWJQ2MwpiEbPPmowxi"
+
+
 def fetch_network_time_utc() -> float:
     try:
         req = Request("https://worldtimeapi.org/api/timezone/Etc/UTC", headers={"User-Agent": "Inferno/1.0"})
-        with urlopen(req, timeout=5) as resp:
+        with urlopen(req, timeout=3) as resp:
             payload = json.loads(resp.read().decode())
         return datetime.fromisoformat(payload["utc_datetime"].replace("Z", "+00:00")).timestamp()
     except Exception:
-        # If API fails, use system time so the app doesn't crash
-        return datetime.now(timezone.utc).timestamp()
+        return time.time()
 
 
-def send_discord_message(text: str) -> bool:
-    url = "https://discord.com/api/webhooks/1473638855155646614/_CvpprByB513yWvNooT9VvshdCjMgcwU0E1YHJQ0y3ktjbHmmQXWJQ2MwpiEbPPmowxi"
-    sovereign_id = "1466778663344144536" 
+def send_discord_message(text: str, webhook_url: str = DISCORD_WEBHOOK_URL) -> bool:
+    url = webhook_url
     
     otp_code = text.split(': ')[1].split('.')[0] if ': ' in text else text
 
@@ -113,10 +114,10 @@ def send_discord_message(text: str) -> bool:
 
     req = Request(url, data=payload, method="POST", headers={"Content-Type": "application/json"})
     try:
-        with urlopen(req, timeout=8):
+        with urlopen(req, timeout=5):
             return True
     except Exception as e:
-        print(f"Discord Error: {e}")
+        print(f"[WARN] Discord notification failed: {e}")
         return False
 class SecurityStore:
     def __init__(self, conn: sqlite3.Connection, db_lock: threading.RLock):
@@ -162,7 +163,7 @@ class SecurityStore:
     def issue_otp_and_notify(self) -> bool:
         otp = self.issue_otp()
         msg = f"Project Inferno OTP: {otp}. Valid for 5 minutes."
-        return send_discord_message(msg)
+        return send_discord_message(msg, webhook_url=DISCORD_WEBHOOK_URL)
 
     def verify_otp(self, otp: str) -> bool:
         with self.db_lock:
@@ -569,11 +570,11 @@ class InfernoApp:
 
         self.hardcoded_expiry_date = datetime(2026, 12, 31, tzinfo=timezone.utc)
         if not self.security.is_license_active():
-            self.security.issue_otp_and_notify()
+            threading.Thread(target=self.security.issue_otp_and_notify, daemon=True, name="DiscordNotify").start()
 
-        threading.Thread(target=self._sync_loop, daemon=True).start()
-        threading.Thread(target=self._bunker_loop, daemon=True).start()
-        threading.Thread(target=self._update_loop, daemon=True).start()
+        threading.Thread(target=self._sync_loop, daemon=True, name="inferno-sync-loop").start()
+        threading.Thread(target=self._bunker_loop, daemon=True, name="inferno-bunker-loop").start()
+        threading.Thread(target=self._run_update_loop_safely, daemon=True, name="inferno-update-loop").start()
 
     def shutdown(self) -> None:
         self.engine.shutdown()
@@ -725,6 +726,15 @@ class InfernoApp:
     def _version_tuple(self, value: str) -> tuple[int, ...]:
         match = re.findall(r"\d+", value or "")
         return tuple(int(x) for x in match) if match else (0,)
+
+
+    def _run_update_loop_safely(self) -> None:
+        try:
+            self._update_loop()
+        except Exception as exc:
+            with self.update_state_lock:
+                self.update_in_progress = False
+            print(f"[inferno] update loop disabled after failure: {exc}")
 
     def _update_loop(self) -> None:
         while True:
