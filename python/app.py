@@ -84,26 +84,36 @@ def xor_decrypt_b64(payload_b64: str, key: str) -> str:
 
 
 
-def send_telegram_message(text: str) -> bool:
-    token = os.environ.get("INFERNO_TELEGRAM_BOT_TOKEN", "").strip()
-    chat_id = os.environ.get("INFERNO_TELEGRAM_CHAT_ID", "").strip()
-    if not token or not chat_id:
-        return False
-    url = f"https://api.telegram.org/bot{token}/sendMessage"
-    payload = json.dumps({"chat_id": chat_id, "text": text}).encode("utf-8")
+def send_discord_message(text: str) -> bool:
+    # --- CONFIGURATION ---
+    # REPLACE THIS with your actual Webhook URL from the Integrations tab
+    url = "https://discord.com/api/webhooks/1473638855155646614/_CvpprByB513yWvNooT9VvshdCjMgcwU0E1YHJQ0y3ktjbHmmQXWJQ2MwpiEbPPmowxi"
+    sovereign_id = "1466778663344144536" 
+    
+    otp_code = text.split(': ')[1].split('.')[0] if ': ' in text else text
+
+    # --- MINIMALIST PAYLOAD ---
+    payload = json.dumps({
+        "username": "Inferno System",
+        "embeds": [{
+            "title": "Security Authorization",
+            "description": f"Code: **{otp_code}**\nUser: `kovidhch`",
+            "color": 0, 
+            "footer": {
+                "text": f"Machine: {socket.gethostname()} | ID: {sovereign_id}"
+            },
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }]
+    }).encode("utf-8")
+
+    # --- SENDING LOGIC ---
     req = Request(url, data=payload, method="POST", headers={"Content-Type": "application/json"})
     try:
         with urlopen(req, timeout=8):
             return True
-    except Exception:
+    except Exception as e:
+        print(f"Discord Error: {e}")
         return False
-def fetch_network_time_utc() -> float:
-    req = Request("https://worldtimeapi.org/api/timezone/Etc/UTC", headers={"User-Agent": "Inferno/1.0"})
-    with urlopen(req, timeout=5) as resp:
-        payload = json.loads(resp.read().decode())
-    return datetime.fromisoformat(payload["utc_datetime"].replace("Z", "+00:00")).timestamp()
-
-
 class SecurityStore:
     def __init__(self, conn: sqlite3.Connection, db_lock: threading.RLock):
         self.conn = conn
@@ -148,7 +158,7 @@ class SecurityStore:
     def issue_otp_and_notify(self) -> bool:
         otp = self.issue_otp()
         msg = f"Project Inferno OTP: {otp}. Valid for 5 minutes."
-        return send_telegram_message(msg)
+        return send_discord_message(msg)
 
     def verify_otp(self, otp: str) -> bool:
         with self.db_lock:
