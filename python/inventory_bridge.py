@@ -31,6 +31,10 @@ class InventoryRecord:
     purchase_date: str = ""
 
 
+class NativeEngineError(RuntimeError):
+    pass
+
+
 class InventoryBridge:
     def __init__(self, lib_path: str = "./build/libinferno.so"):
         if not os.path.exists(lib_path):
@@ -65,6 +69,8 @@ class InventoryBridge:
         self.lib.inferno_engine_free_string.argtypes = [ctypes.c_void_p]
 
         self.handle = self.lib.inferno_engine_create()
+        if not self.handle:
+            raise NativeEngineError("inferno_engine_create returned null handle")
         self._closed = False
 
     def shutdown(self) -> None:
@@ -89,6 +95,8 @@ class InventoryBridge:
             self.lib.inferno_engine_free_string(ptr)
 
     def _consume_json_ptr(self, ptr) -> list | dict:
+        if not ptr:
+            return {}
         try:
             c_value = ctypes.cast(ptr, ctypes.c_char_p).value.decode("utf-8")
             return json.loads(c_value)

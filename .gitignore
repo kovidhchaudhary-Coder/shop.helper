@@ -1,0 +1,17 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Local databases / app data
+*.db
+*.sqlite
+*.sqlite3
+.sys_cache.db
+
+# Native build artifacts
+build/
+*.so
+
+# Local test/runtime artifacts
+*.png
+*.log

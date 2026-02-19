@@ -35,7 +35,6 @@ public:
     std::string getMonthlyReport() const;
     std::string getSystemHealthBackup(int total_customer_count) const;
 
-    // Backward-compatible wrappers
     void upsert_item(const InventoryItem& item) { addItem(item); }
     std::string export_analytics_json(std::size_t top_n = 5) const;
 
@@ -47,4 +46,4 @@ private:
     double total_loss_ = 0.0;
 };
 
-} // namespace inferno
+}

@@ -15,8 +15,7 @@ def preflight_native_engine_or_exit() -> None:
     try:
         ctypes.CDLL(str(lib_path))
     except Exception as exc:
-        print("[FATAL] Native Engine Missing")
-        print(f"[WARN] Native loader detail: {exc}")
+        print(f"[FATAL] Native engine unavailable: {exc}")
         sys.exit(1)
 
 
@@ -26,18 +25,18 @@ def run_server(host: str = "0.0.0.0", port: int = 8000):
         sys.exit(1)
 
     app_state = InfernoApp()
+    item_count, net_potential = app_state.finance_ledger_summary()
+    print(f"[✓] FINANCE: Ledger active (${net_potential / 100:.2f} Net Value)")
     server = ThreadingHTTPServer((host, port), create_handler(app_state))
     local_url = f"http://127.0.0.1:{port}"
 
-    print(f"[inferno] server listening on {host}:{port}")
-    print(f"[inferno] open {local_url} in your browser")
+    print(f"[STARTUP] Server listening on {host}:{port}")
 
     if os.environ.get("INFERNO_OPEN_BROWSER", "1") == "1":
         try:
             webbrowser.open(local_url)
-            print("[inferno] attempted to open browser window")
         except Exception as exc:
-            print(f"[inferno] could not open browser automatically: {exc}")
+            print(f"[WARN] Browser auto-open skipped: {exc}")
 
     def _shutdown(*_args):
         server.shutdown()
@@ -55,7 +54,14 @@ def run_server(host: str = "0.0.0.0", port: int = 8000):
 
 
 if __name__ == "__main__":
-    print("[BOOT] Initializing Project Inferno...")
+    boot_banner = [
+        "██████████████████████████████████████████████████████████",
+        "█         INFERNO SOVEREIGN KERNEL :: SECURE BOOT         █",
+        "██████████████████████████████████████████████████████████",
+    ]
+    for line in boot_banner:
+        print(line)
+    print("[STARTUP] Initializing Project Inferno")
     preflight_native_engine_or_exit()
     host = os.environ.get("INFERNO_HOST", "0.0.0.0")
     port = int(os.environ.get("INFERNO_PORT", "8000"))
