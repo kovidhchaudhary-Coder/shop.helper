@@ -17,7 +17,7 @@ const char* alloc_string(const std::string& value) {
     return buf;
 }
 
-} // namespace
+}
 
 extern "C" {
 
@@ -123,4 +123,4 @@ void inferno_engine_free_string(const char* value) {
     std::free(const_cast<char*>(value));
 }
 
-} // extern "C"
+}

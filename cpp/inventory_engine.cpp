@@ -52,6 +52,47 @@ std::string esc(const std::string& s) {
     return out.str();
 }
 
+std::string to_lower_copy(const std::string& input) {
+    std::string out;
+    out.reserve(input.size());
+    for (unsigned char c : input) {
+        out.push_back(static_cast<char>(std::tolower(c)));
+    }
+    return out;
+}
+
+bool all_digits(const std::string& input) {
+    if (input.empty()) return false;
+    return std::all_of(input.begin(), input.end(), [](unsigned char c) { return std::isdigit(c); });
+}
+
+int levenshtein_bounded(const std::string& left, const std::string& right, int max_distance) {
+    const std::size_t n = left.size();
+    const std::size_t m = right.size();
+    if (n == 0) return static_cast<int>(m);
+    if (m == 0) return static_cast<int>(n);
+
+    if (std::abs(static_cast<int>(n) - static_cast<int>(m)) > max_distance) {
+        return max_distance + 1;
+    }
+
+    std::vector<int> prev(m + 1), cur(m + 1);
+    for (std::size_t j = 0; j <= m; ++j) prev[j] = static_cast<int>(j);
+
+    for (std::size_t i = 1; i <= n; ++i) {
+        cur[0] = static_cast<int>(i);
+        int row_best = cur[0];
+        for (std::size_t j = 1; j <= m; ++j) {
+            const int cost = (left[i - 1] == right[j - 1]) ? 0 : 1;
+            cur[j] = std::min({prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost});
+            row_best = std::min(row_best, cur[j]);
+        }
+        if (row_best > max_distance) return max_distance + 1;
+        prev.swap(cur);
+    }
+    return prev[m];
+}
+
 int levenshtein(const std::string& left, const std::string& right) {
     const std::size_t n = left.size();
     const std::size_t m = right.size();
@@ -81,7 +122,7 @@ int levenshtein(const std::string& left, const std::string& right) {
     return prev[m];
 }
 
-} // namespace
+}
 
 void InventoryEngine::addItem(const InventoryItem& item) {
     items_[item.id] = item;
@@ -128,17 +169,58 @@ std::string InventoryEngine::getFuzzyMatch(const std::string& query, int max_res
         double fuzzy_score;
     };
 
+    const std::string normalized_query = to_lower_copy(query);
+    if (normalized_query.empty()) return "[]";
+
+    if (all_digits(normalized_query)) {
+        try {
+            const int id = std::stoi(normalized_query);
+            auto exact = getItem(id);
+            if (exact.has_value()) {
+                std::ostringstream json;
+                json << std::fixed << std::setprecision(6)
+                     << "[{\"id\":" << exact->id
+                     << ",\"name\":\"" << esc(exact->name)
+                     << "\",\"quantity\":" << exact->quantity
+                     << ",\"fuzzy_distance\":0,\"fuzzy_score\":1.000000}]";
+                return json.str();
+            }
+        } catch (...) {
+        }
+    }
+
     std::vector<Candidate> candidates;
     candidates.reserve(items_.size());
+    const int max_distance = std::max(2, static_cast<int>(normalized_query.size()));
+
     for (const auto& [_, item] : items_) {
-        const int distance = levenshtein(query, item.name);
-        const int normalizer = std::max<int>(1, std::max(query.size(), item.name.size()));
-        const double fuzzy_score = 1.0 - (static_cast<double>(distance) / static_cast<double>(normalizer));
-        candidates.push_back({distance, item, std::max(0.0, fuzzy_score)});
+        const std::string normalized_name = to_lower_copy(item.name);
+        int distance = 0;
+        double fuzzy_score = 0.0;
+
+        if (normalized_name == normalized_query) {
+            distance = 0;
+            fuzzy_score = 1.0;
+        } else if (normalized_name.rfind(normalized_query, 0) == 0) {
+            distance = 1;
+            fuzzy_score = 0.975;
+        } else if (normalized_name.find(normalized_query) != std::string::npos) {
+            distance = 2;
+            fuzzy_score = 0.935;
+        } else {
+            distance = levenshtein_bounded(normalized_query, normalized_name, max_distance);
+            const int normalizer = std::max<int>(1, std::max(normalized_query.size(), normalized_name.size()));
+            fuzzy_score = 1.0 - (static_cast<double>(distance) / static_cast<double>(normalizer));
+        }
+
+        if (distance <= max_distance + 1) {
+            candidates.push_back({distance, item, std::max(0.0, fuzzy_score)});
+        }
     }
 
     std::sort(candidates.begin(), candidates.end(), [](const Candidate& a, const Candidate& b) {
         if (a.distance != b.distance) return a.distance < b.distance;
+        if (std::fabs(a.fuzzy_score - b.fuzzy_score) > 1e-6) return a.fuzzy_score > b.fuzzy_score;
         return a.item.name < b.item.name;
     });
 
@@ -264,4 +346,4 @@ std::string InventoryEngine::export_analytics_json(std::size_t) const {
     return getMonthlyReport();
 }
 
-} // namespace inferno
+}

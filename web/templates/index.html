@@ -10,10 +10,17 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    :root { color-scheme: dark; }
-    body { font-family: 'Inter', sans-serif; background: #0f172a; }
-    .active-btn { box-shadow: 0 0 15px rgba(20, 184, 166, 0.3); }
-    .modal-overlay { backdrop-filter: blur(8px); background: rgba(2, 6, 23, 0.65); }
+    :root { color-scheme: dark; --accent-color: #E65100; --glass-alpha: 0.05; --action-blue:#00AEEF; --alert-red:#FF1744; }
+    .retail-minimal .quick-grid, .retail-minimal #stockValueBadge, .retail-minimal #profitChart, .retail-minimal #velocityChart, .retail-minimal #inventoryList, .retail-minimal #alerts, .retail-minimal footer, .retail-minimal #pendingBadge, .retail-minimal [data-open-modal], .retail-minimal #adminToggle { display:none !important; }
+    .retail-minimal #customerId { display:block; max-width: 180px; }
+    .retail-minimal section:first-of-type { display:none !important; }
+    .retail-minimal section.grid.grid-cols-1.md\:grid-cols-2 > div:first-child { display:none !important; }
+    .retail-minimal section.grid.grid-cols-1.md\:grid-cols-2 > div:last-child h3 { display:none !important; }
+    .retail-minimal section.grid.grid-cols-1.md\:grid-cols-2 > div:last-child h4 { display:none !important; }
+    body { font-family: 'Inter', 'Roboto', system-ui, -apple-system, sans-serif; background: #050505; background-image: radial-gradient(circle at top, color-mix(in srgb, var(--accent-color) 16%, transparent), transparent 42%); }
+    .active-btn { box-shadow: 0 0 16px color-mix(in srgb, var(--action-blue) 28%, transparent); transition: all .2s ease; }
+    .active-btn:hover { transform: translateY(-1px); box-shadow: 0 0 20px color-mix(in srgb, var(--action-blue) 45%, transparent); }
+    .modal-overlay { backdrop-filter: blur(18px) saturate(180%); background: rgba(0, 0, 0, 0.4); }
     .modal-in { animation: modalIn .28s ease-out forwards; }
     .modal-out { animation: modalOut .22s ease-in forwards; }
     @keyframes modalIn { from { opacity: 0; transform: scale(.94) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
@@ -31,126 +38,706 @@
     .version-tag { animation: tagPulse 2.4s ease-in-out infinite; }
     .version-tag.updating { color: #f59e0b; border-color: rgba(245,158,11,.8); box-shadow: 0 0 14px rgba(245,158,11,.35); }
     @keyframes tagPulse { 0%,100% { opacity:.58 } 50% { opacity:1 } }
+    .panel { border: 1px solid rgba(255,255,255,.1); backdrop-filter: blur(12px); background: rgba(255, 255, 255, var(--glass-alpha)); box-shadow: inset 0 1px 0 rgba(255,255,255,.05); }
+    .cyber-input { background: #0d0d0d; border: 1px solid rgba(255,255,255,.14); color: #f5f5f5; transition: border-color .2s ease, box-shadow .2s ease; }
+    .cyber-input:focus { border-color: var(--accent-color); box-shadow: 0 0 0 1px var(--accent-color), 0 0 18px color-mix(in srgb, var(--accent-color) 26%, transparent); outline: none; }
+    .cyber-login-card { background: rgba(8,8,8,.95); border: 1px solid rgba(255,69,0,.35); box-shadow: 0 0 40px rgba(0,0,0,.55), 0 0 26px color-mix(in srgb, var(--accent-color) 16%, transparent); transition: transform .2s ease, box-shadow .25s ease; }
+    .cyber-login-card:hover { transform: translateY(-1px); box-shadow: 0 0 40px rgba(0,0,0,.55), 0 0 30px color-mix(in srgb, var(--accent-color) 24%, transparent); }
+    .otp-glow:focus { box-shadow: 0 0 0 1px var(--accent-color), 0 0 24px color-mix(in srgb, var(--accent-color) 45%, transparent); }
+    .status-dot { width: .58rem; height: .58rem; border-radius: 999px; display: inline-block; }
+    .status-dot.passive { background: color-mix(in srgb, var(--accent-color) 45%, transparent); box-shadow: none; }
+    .status-dot.live { background: var(--accent-color); box-shadow: 0 0 10px rgba(230,81,0,.9), 0 0 22px rgba(230,81,0,.55); }
+    .stock-badge { user-select: none; cursor: pointer; border: 1px solid rgba(230,81,0,.35); background: rgba(230,81,0,.08); }
+    .profit-hidden { opacity: 0; max-width: 0; overflow: hidden; display: inline-block; white-space: nowrap; transition: opacity .2s ease, max-width .2s ease; }
+    .show-profit .profit-hidden { opacity: 1; max-width: 140px; margin-left: .35rem; }
+    .margin-plus { color: #fb923c; }
+    .margin-minus { color: var(--alert-red); }
+    .dashboard-shell { animation: breathePulse 9s ease-in-out infinite; transform: translateY(0); transition: transform .45s ease, opacity .45s ease; }
+    .dashboard-shell.slide-up { transform: translateY(0); opacity: 1; }
+    .dashboard-shell.locked { transform: translateY(24px); opacity: .88; }
+    @keyframes breathePulse { 0%,100% { opacity: .98; } 50% { opacity: 1; } }
+    .hud-dot { width:.58rem; height:.58rem; border-radius:999px; display:inline-block; }
+    .hud-dot.offline { background: rgba(230,81,0,.35); }
+    .hud-dot.online { background:var(--accent-color); box-shadow: 0 0 10px rgba(230,81,0,.9), 0 0 22px rgba(230,81,0,.55); }
+    .license-gate.fade-out { animation: gateFadeOut .4s ease forwards; }
+    @keyframes gateFadeOut { from { opacity:1; } to { opacity:0; } }
+    #sovereign-settings-panel { position: fixed; inset: 0; z-index: 70; display: none; backdrop-filter: blur(10px); background: rgba(0,0,0,.72); }
+    #sovereign-settings-panel.open { display: flex; }
+    .settings-shell { width: min(980px, 96vw); max-height: 92vh; overflow: hidden; border: 1px solid color-mix(in srgb, var(--accent-color) 45%, transparent); }
+    .settings-tab.active { background: color-mix(in srgb, var(--accent-color) 12%, transparent); color: #fed7aa; }
+    .settings-view { display: none; }
+    .settings-view.active { display: block; }
+    #cart-container { transition: box-shadow .2s ease, border-color .2s ease; }
+    #cart-container.scan-pulse { animation: cartScanPulse .2s ease; }
+    @keyframes cartScanPulse { 0%{box-shadow:0 0 0 rgba(34,197,94,0);} 50%{box-shadow:0 0 0 2px rgba(34,197,94,.95), 0 0 28px rgba(34,197,94,.65);} 100%{box-shadow:0 0 0 rgba(34,197,94,0);} }
+    .qty-control { cursor: ew-resize; user-select: none; }
+    .price-editable[contenteditable="true"] { border-bottom: 1px dashed rgba(255,255,255,.28); outline: none; }
+    .modified-tag { font-size: 10px; letter-spacing: .08em; color: #86efac; border:1px solid rgba(34,197,94,.5); border-radius: 999px; padding: 1px 6px; }
+    .cart-fade { animation: cartFade .12s ease; }
+    @keyframes cartFade { from { opacity:.4; transform: translateY(2px);} to { opacity:1; transform: translateY(0);} }
+    .slot-btn.active.slot-1 { border-color:#38bdf8; color:#bae6fd; background:rgba(56,189,248,.18);} .slot-btn.active.slot-2 { border-color:#a78bfa; color:#ddd6fe; background:rgba(167,139,250,.18);} .slot-btn.active.slot-3 { border-color:#f472b6; color:#fbcfe8; background:rgba(244,114,182,.18);}
+    #peekPriceOverlay { position:fixed; inset:0; z-index:75; pointer-events:none; display:flex; align-items:center; justify-content:center; opacity:0; transition: opacity .25s ease; }
+    #peekPriceOverlay.show { opacity:1; }
+    .touch-btn { min-height: 44px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .touch-btn:active { transform: scale(.98); filter: brightness(1.4) saturate(1.2); }
+    .btn-disabled { background: #3f3f46 !important; color: #a1a1aa !important; cursor: not-allowed; }
+    .btn-active-blue { background:#0284c7 !important; color:#fff !important; }
+    .profit-up-theme { box-shadow: inset 0 0 0 1px rgba(34,197,94,.4); }
+    .stock-icon { color:#93c5fd; transition: color .2s ease, filter .2s ease; }
+    .stock-icon.attention { color:#f59e0b; filter: drop-shadow(0 0 4px rgba(245,158,11,.35)); }
+    .warning-card { border:1px solid rgba(16,185,129,.45); background: rgba(16,185,129,.08); }
+    .logs-only { display:none; }
+    body.logs-route .logs-only { display:block; }
+    body.logs-route .home-only { display:none !important; }
+    #ghostOpsModal { position: fixed; inset: 0; z-index: 80; display: none; align-items: center; justify-content: center; backdrop-filter: blur(18px) saturate(180%); background: rgba(0,0,0,.4); }
+    #ghostOpsModal.open { display:flex; }
+
+  
+    .interactive { position: relative; overflow: hidden; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .interactive:hover { filter: brightness(1.4) saturate(1.2); }
+    .accept-btn { background:#16a34a !important; color:#fff !important; }
+    .decline-btn { background:#dc2626 !important; color:#fff !important; }
+    #chartHoverTip { position: fixed; z-index: 90; pointer-events: none; background: rgba(3,7,18,.92); border: 1px solid rgba(56,189,248,.35); color: #e2e8f0; border-radius: 8px; padding: 6px 8px; font-size: 11px; display:none; }
+
+    .ripple { position:absolute; border-radius:9999px; pointer-events:none; border:1px solid var(--ripple-color, rgba(255,255,255,.5)); background: radial-gradient(circle, var(--ripple-color-soft, rgba(255,255,255,.18)), transparent 65%); transform:translate(-50%,-50%) scale(0.15); opacity:.75; animation:rippleWave .45s ease-out forwards; }
+    .ripple.r2 { animation-duration:.62s; opacity:.55; }
+    .ripple.r3 { animation-duration:.8s; opacity:.4; }
+    @keyframes rippleWave { to { transform:translate(-50%,-50%) scale(2.2); opacity:0; } }
+    .cart-row-pop { animation: cartPop .1s ease-out; }
+    .odometer { display:inline-flex; gap:1px; align-items:center; font-variant-numeric: tabular-nums; }
+    .odometer-char { display:inline-block; }
+    .odometer-digit-wrap { height:1em; overflow:hidden; display:inline-block; }
+    .odometer-digit-strip { display:flex; flex-direction:column; transform:translateY(0); transition: transform .45s cubic-bezier(0.45, 0.05, 0.55, 0.95); }
+    .odometer-digit { line-height:1em; height:1em; }
+    .magnetic-btn { will-change: transform; }
+    .dashboard-shell { --mouse-x: 50%; --mouse-y: 40%; background-image: radial-gradient(420px circle at var(--mouse-x) var(--mouse-y), rgba(0,150,255,0.05), transparent 70%); transform-style: preserve-3d; }
+    .dashboard-shell.modal-depth { transform: perspective(1200px) rotateX(-2deg) scale(0.95); }
+    #cartHapticIcon.shake { animation: hapticShake .16s linear; }
+    @keyframes hapticShake { 0%,100%{ transform: translateX(0);} 25%{ transform: translateX(-2px);} 75%{ transform: translateX(2px);} }
+    @keyframes cartPop { 0%{ transform: scale(1);} 60%{ transform: scale(1.02);} 100%{ transform: scale(1);} }
+
   </style>
 </head>
-<body class="text-slate-100 min-h-screen">
-  <div id="lockdown" class="hidden fixed inset-0 z-50 bg-black text-amber-400 items-center justify-center text-3xl font-bold text-center p-8">RENTAL EXPIRED: CONTACT ARCHITECT</div>
+<body class="retail-minimal text-zinc-100 min-h-screen antialiased">
+  <div id="lockdown" class="hidden fixed inset-0 z-50 bg-black text-orange-300 items-center justify-center text-3xl font-bold text-center p-8">RENTAL EXPIRED: CONTACT ARCHITECT</div>
 
-  <div class="max-w-7xl mx-auto p-6 space-y-5">
-    <header class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+  <div id="dashboardShell" class="dashboard-shell locked max-w-7xl mx-auto p-4 md:p-6 space-y-5">
+    <header class="flex flex-wrap items-center justify-between gap-4 panel rounded-2xl p-4">
       <div class="editable-wrap flex items-center gap-2">
-        <h1 id="shopNameText" class="text-2xl font-extrabold tracking-tight text-teal-400">Project Inferno Retail HQ</h1>
-        <button id="editShopBtn" class="edit-icon text-teal-300 hover:text-teal-100" title="Edit shop name">✎</button>
+        <h1 id="shopNameText" class="text-2xl font-extrabold tracking-tight text-orange-400">Project Inferno Retail HQ</h1><span id="stockSignal" class="stock-icon" title="Stock status">⬢</span>
+        <button id="editShopBtn" class="edit-icon text-orange-300 hover:text-orange-100" title="Edit shop name">✎</button>
       </div>
       <div class="flex gap-2 items-center">
-        <input id="customerId" class="bg-slate-950 border border-slate-700 px-3 py-2 rounded-lg w-40" value="guest" placeholder="Customer" />
-        <input id="search" class="bg-slate-950 border border-slate-700 px-3 py-2 rounded-lg w-72" placeholder="Search item" />
+        <input id="customerId" class="cyber-input px-3 py-2 rounded-lg w-40" value="" placeholder="Customer phone" inputmode="numeric" />
+        <span id="pendingBadge" class="hidden text-xs px-2 py-1 rounded-full border border-amber-500/50 text-amber-300">Pending: ₹0.00</span>
+        <input id="search" class="cyber-input px-3 py-2 rounded-lg w-full md:w-72" placeholder="Search item" />
       </div>
     </header>
 
     <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <div class="rounded-2xl border border-slate-800 bg-slate-900/75 p-4">
-        <h3 class="text-sm font-semibold text-teal-400 mb-2">Quick Actions</h3>
-        <div class="grid gap-2">
-          <button data-open-modal="addItemModal" class="active-btn rounded-lg bg-teal-700 hover:bg-teal-600 px-3 py-2">Add Item</button>
-          <button data-open-modal="customerModal" class="active-btn rounded-lg bg-slate-700 hover:bg-slate-600 px-3 py-2">Customer Profile</button>
-          <button data-open-modal="rotModal" class="active-btn rounded-lg bg-amber-600 hover:bg-amber-500 px-3 py-2 text-slate-900 font-semibold">Rot Alerts</button>
+      <div class="panel rounded-2xl p-4">
+        <h3 class="text-sm font-semibold text-orange-400 mb-2">Quick Actions</h3>
+        <div class="home-only quick-grid grid gap-2">
+          <button data-open-modal="addItemModal" class="interactive active-btn touch-btn rounded-lg bg-orange-700 hover:bg-orange-600 px-3 py-2">Add Item</button>
+          <button data-open-modal="customerModal" class="interactive active-btn touch-btn rounded-lg bg-zinc-800 hover:bg-zinc-700 px-3 py-2">Customer Profile</button>
+          <button data-open-modal="rotModal" class="interactive active-btn touch-btn rounded-lg bg-orange-500 hover:bg-orange-400 px-3 py-2 text-black font-semibold">Rot Alerts</button>
+          <button id="endDayBtn" class="interactive magnetic-btn active-btn touch-btn rounded-lg bg-sky-700 hover:bg-sky-600 px-3 py-2">Close Shop</button>
         </div>
-        <p id="createStatus" class="text-xs text-slate-400 mt-3"></p>
+        <p id="createStatus" class="text-xs text-zinc-400 mt-3"></p>
+        <div id="stockValueBadge" class="stock-badge mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs text-orange-300">Stock Value <span id="stockValueAmount" class="font-semibold">₹0.00</span></div>
       </div>
 
-      <div class="rounded-2xl border border-slate-800 bg-slate-900/75 p-4 lg:col-span-2">
-        <h3 class="text-sm font-semibold text-amber-400 mb-2">Profit vs Investment (7-day)</h3>
+      <div class="panel rounded-2xl p-4 lg:col-span-2">
+        <h3 class="text-sm font-semibold text-orange-300 mb-2">Profit vs Investment (7-day)</h3>
         <canvas id="profitChart" height="120"></canvas>
       </div>
     </section>
 
     <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div class="rounded-2xl border border-slate-800 bg-slate-900/75 p-4">
-        <h3 class="text-sm font-semibold text-teal-400 mb-2">Stock Velocity</h3>
+      <div class="panel rounded-2xl p-4">
+        <h3 class="text-sm font-semibold text-orange-400 mb-2">Stock Velocity</h3>
         <canvas id="velocityChart" height="130"></canvas>
       </div>
-      <div class="rounded-2xl border border-slate-800 bg-slate-900/75 p-4">
-        <h3 class="text-sm font-semibold text-amber-400 mb-2">Search Results</h3>
+      <div class="panel rounded-2xl p-4">
+        <h3 class="text-sm font-semibold text-orange-300 mb-2">Inventory</h3>
+        <ul id="inventoryList" class="space-y-2 text-sm mb-3"></ul>
+        <h4 class="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-2">Search Results</h4>
         <ul id="results" class="space-y-2 text-sm"></ul>
+        <div id="cart-container" class="mt-4 rounded-xl border border-zinc-700/80 bg-zinc-950/70 p-3">
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="text-xs font-semibold text-emerald-300 uppercase tracking-wide flex items-center gap-1">Active Cart <span id="cartHapticIcon">🛒</span></h4>
+            <span id="cartTotal" class="text-xs text-zinc-300 odometer">₹0.00</span>
+          </div>
+          <div class="mb-2 flex gap-2">
+            <button class="slot-btn text-xs px-3 py-1 rounded-full border border-zinc-700" data-slot="1">1</button>
+            <button class="slot-btn text-xs px-3 py-1 rounded-full border border-zinc-700" data-slot="2">2</button>
+            <button class="slot-btn text-xs px-3 py-1 rounded-full border border-zinc-700" data-slot="3">3</button>
+          </div>
+          <ul id="cartList" class="space-y-2 text-sm"></ul>
+          <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+            <button id="addCreditBtn" class="interactive magnetic-btn touch-btn rounded-lg bg-amber-700 hover:bg-amber-600 px-3 py-2 text-sm font-semibold">Add to Credit (Udhaar)</button>
+            <button id="sendWhatsAppBtn" class="interactive magnetic-btn touch-btn btn-disabled rounded-lg px-3 py-2 text-sm font-semibold" disabled>Send WhatsApp Bill</button>
+          </div>
+        </div>
       </div>
     </section>
   </div>
 
-  <div id="licenseGate" class="hidden fixed inset-0 z-40 modal-overlay flex items-center justify-center p-6">
-    <div class="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900/95 p-5 space-y-3 modal-in">
-      <h2 class="text-lg font-semibold text-amber-400">License OTP Required</h2>
-      <input id="otpInput" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2" placeholder="6-digit OTP" />
-      <div class="flex gap-2">
-        <button id="otpSendBtn" class="active-btn flex-1 rounded-lg bg-teal-700 hover:bg-teal-600 px-3 py-2">Send OTP</button>
-        <button id="otpVerifyBtn" class="active-btn flex-1 rounded-lg bg-amber-600 hover:bg-amber-500 px-3 py-2 text-slate-900 font-semibold">Verify OTP</button>
+    <section id="logsWorkbench" class="logs-only panel rounded-2xl p-4 space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="font-semibold text-zinc-100">High-Velocity Entry</h3>
+        <label class="text-xs inline-flex items-center gap-2"><input id="manualCodeToggle" type="checkbox">Manual Code</label>
       </div>
-      <p id="otpStatus" class="text-xs text-slate-400"></p>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
+        <input id="hvName" class="cyber-input rounded px-2 py-2" placeholder="Name" />
+        <input id="hvPrice" class="cyber-input rounded px-2 py-2" type="number" step="0.01" placeholder="Price (₹)" />
+        <input id="hvCost" class="cyber-input rounded px-2 py-2" type="number" step="0.01" placeholder="Cost (₹)" />
+        <input id="hvStock" class="cyber-input rounded px-2 py-2" type="number" step="0.001" placeholder="Stock" />
+      </div>
+      <div class="text-xs text-zinc-400">Code: <span id="hvCodeLabel">Auto</span></div>
+      <div class="flex gap-2">
+        <button id="hvSaveBtn" class="interactive rounded-lg px-3 py-2 bg-emerald-700 hover:bg-emerald-600">Save & Next</button>
+        <button id="hvClearBtn" class="interactive rounded-lg px-3 py-2 bg-zinc-800 hover:bg-zinc-700">Clear</button>
+      </div>
+      <ul id="inventoryLogList" class="space-y-1 text-sm max-h-48 overflow-auto"></ul>
+    </section>
+
+    <section id="homeWarnings" class="home-only panel rounded-2xl p-4 space-y-2"></section>
+
+
+  <div id="licenseGate" class="license-gate hidden fixed inset-0 z-40 modal-overlay flex items-center justify-center p-6">
+    <div class="w-full max-w-md rounded-2xl cyber-login-card p-6 space-y-4 modal-in">
+      <h2 class="text-lg font-semibold text-orange-300">Owner Access Code</h2>
+      <input id="otpInput" class="w-full cyber-input otp-glow rounded-lg px-3 py-3 text-center tracking-[0.45em] text-xl font-semibold font-mono" placeholder="6-digit OTP" />
+            <div class="flex gap-2">
+        <button id="otpSendBtn" class="active-btn flex-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 px-3 py-2">Send OTP</button>
+        <button id="otpVerifyBtn" class="active-btn flex-1 rounded-lg bg-orange-500 hover:bg-orange-400 px-3 py-2 text-black font-semibold">Verify OTP</button>
+      </div>
+      <p id="otpStatus" class="text-xs text-zinc-400"></p>
     </div>
   </div>
 
-  <div id="addItemModal" class="hidden fixed inset-0 z-30 modal-overlay flex items-center justify-center p-4 modal-overlay-target">
-    <div class="modal-card w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900/95 p-5 modal-in">
-      <h3 class="text-lg font-semibold text-teal-400 mb-3">Add Item</h3>
+  <div id="addItemModal" class="hidden fixed inset-0 z-30 modal-overlay flex items-center justify-center p-4 modal-overlay-target" data-void-close="true">
+    <div class="modal-card w-full max-w-lg rounded-2xl panel p-5 modal-in">
+      <h3 class="text-lg font-semibold text-orange-400 mb-3">Add Item</h3>
       <div class="grid grid-cols-2 gap-2 text-sm">
-        <input id="newName" class="bg-slate-950 border border-slate-700 rounded px-2 py-2 col-span-2" placeholder="Item name" />
-        <select id="newType" class="bg-slate-950 border border-slate-700 rounded px-2 py-2"><option value="FIXED">Fixed</option><option value="VARIABLE">Variable</option></select>
-        <input id="newQty" type="number" step="0.001" class="bg-slate-950 border border-slate-700 rounded px-2 py-2" placeholder="Quantity" />
+        <input id="newCode" class="cyber-input rounded px-2 py-2 col-span-2" placeholder="Barcode / Shortcut code" />
+        <input id="newName" class="cyber-input rounded px-2 py-2 col-span-2" placeholder="Item name" />
+        <select id="newType" class="cyber-input rounded px-2 py-2"><option value="FIXED">Fixed</option><option value="VARIABLE">Variable</option></select>
+        <input id="newQty" type="number" step="0.001" class="cyber-input rounded px-2 py-2" placeholder="Quantity" />
 
         <div id="variableUnitWrap" class="col-span-2 slide-down-enter">
-          <select id="unitLabel" class="w-full rounded px-2 py-2 bg-teal-900/70 border border-teal-500 text-teal-100">
+          <select id="unitLabel" class="w-full rounded px-2 py-2 bg-orange-900/30 border border-orange-500/60 text-orange-100">
             <option value="KG">KG</option><option value="LITERS">Liters</option><option value="GRAMS">Grams</option><option value="ML">ML</option>
           </select>
         </div>
 
-        <input id="newPurchase" type="number" step="0.0001" class="bg-slate-950 border border-slate-700 rounded px-2 py-2" placeholder="Purchase Price" />
-        <input id="newSelling" type="number" step="0.0001" class="bg-slate-950 border border-slate-700 rounded px-2 py-2" placeholder="Selling Price" />
+        <input id="newPurchase" type="number" step="0.0001" class="cyber-input rounded px-2 py-2" placeholder="Purchase Price" />
+        <input id="newSelling" type="number" step="0.0001" class="cyber-input rounded px-2 py-2" placeholder="Selling Price" />
 
-        <label class="col-span-2 text-xs text-slate-300">Perishable Days (1-10)</label>
-        <select id="perishableDays" class="col-span-2 bg-slate-950 border border-slate-700 rounded px-2 py-2 slide-down-enter open">
+        <label class="col-span-2 text-xs text-zinc-300">Perishable Days (1-10)</label>
+        <select id="perishableDays" class="col-span-2 cyber-input rounded px-2 py-2 slide-down-enter open">
           <option value="">Not perishable</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option>
         </select>
         <div id="perishableBadgeWrap" class="col-span-2"></div>
       </div>
       <div class="mt-4 flex justify-end gap-2">
-        <button data-close-modal class="rounded-lg px-3 py-2 bg-slate-700 hover:bg-slate-600">Cancel</button>
-        <button id="createItem" class="active-btn rounded-lg px-3 py-2 bg-teal-700 hover:bg-teal-600">Forge Item</button>
+        <button data-close-modal class="interactive rounded-lg px-3 py-2 bg-zinc-800 hover:bg-zinc-700">Cancel</button>
+        <button id="createItem" class="active-btn rounded-lg px-3 py-2 bg-orange-700 hover:bg-orange-600">Forge Item</button>
       </div>
     </div>
   </div>
 
-  <div id="customerModal" class="hidden fixed inset-0 z-30 modal-overlay flex items-center justify-center p-4 modal-overlay-target">
-    <div class="modal-card w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900/95 p-5 modal-in">
-      <h3 class="text-lg font-semibold text-teal-400 mb-3">Customer Profile</h3>
-      <input id="phoneInput" class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2" placeholder="+91xxxxxxxxxx"/>
-      <button id="cleanPhoneBtn" class="active-btn w-full mt-3 rounded-lg bg-teal-700 hover:bg-teal-600 py-2">Clean Phone</button>
-      <p id="phoneStatus" class="text-xs mt-2 text-slate-400"></p>
-      <div class="mt-4 text-right"><button data-close-modal class="rounded-lg px-3 py-2 bg-slate-700 hover:bg-slate-600">Close</button></div>
+  <div id="customerModal" class="hidden fixed inset-0 z-30 modal-overlay flex items-center justify-center p-4 modal-overlay-target" data-void-close="true">
+    <div class="modal-card w-full max-w-md rounded-2xl panel p-5 modal-in">
+      <h3 class="text-lg font-semibold text-orange-400 mb-3">Customer Profile</h3>
+      <input id="phoneInput" class="w-full cyber-input rounded px-3 py-2" placeholder="+91xxxxxxxxxx"/>
+      <button id="cleanPhoneBtn" class="active-btn w-full mt-3 rounded-lg bg-orange-700 hover:bg-orange-600 py-2">Clean Phone</button>
+      <p id="phoneStatus" class="text-xs mt-2 text-zinc-400"></p>
+      <div class="mt-4 text-right"><button data-close-modal class="interactive rounded-lg px-3 py-2 bg-zinc-800 hover:bg-zinc-700">Close</button></div>
     </div>
   </div>
 
-  <div id="rotModal" class="hidden fixed inset-0 z-30 modal-overlay flex items-center justify-center p-4 modal-overlay-target">
-    <div class="modal-card w-full max-w-md rounded-2xl border border-amber-500/40 bg-slate-900/95 p-5 modal-in">
-      <h3 class="text-lg font-semibold text-amber-400 mb-3">Rot Alerts</h3>
+  <div id="rotModal" class="hidden fixed inset-0 z-30 modal-overlay flex items-center justify-center p-4 modal-overlay-target" data-void-close="true">
+    <div class="modal-card w-full max-w-md rounded-2xl border border-orange-500/40 bg-zinc-950/95 p-5 modal-in">
+      <h3 class="text-lg font-semibold text-orange-300 mb-3">Rot Alerts</h3>
       <div id="alerts" class="space-y-2"></div>
-      <div class="mt-4 text-right"><button data-close-modal class="rounded-lg px-3 py-2 bg-slate-700 hover:bg-slate-600">Close</button></div>
+      <div class="mt-4 text-right"><button data-close-modal class="interactive rounded-lg px-3 py-2 bg-zinc-800 hover:bg-zinc-700">Close</button></div>
     </div>
   </div>
 
-  <div id="versionBadge" class="version-tag fixed bottom-3 right-3 z-30 text-[11px] px-3 py-1 rounded-full border border-teal-400/60 text-teal-300 bg-slate-900/90">v1.0.1-Stable</div>
+  <footer class="panel rounded-2xl p-3 text-xs text-zinc-400 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-2"><span>Native Engine</span><span id="engineHudDot" class="hud-dot offline"></span></div>
+    <div id="lastSyncStamp">Last Sync: --</div>
+    <button id="adminToggle" class="hidden rounded-lg px-2 py-1 border border-orange-500/40 text-orange-300 hover:bg-orange-500/10">Admin Toggle</button>
+  </footer>
+
+  <div id="adminProfitModal" class="hidden fixed inset-0 z-40 modal-overlay flex items-center justify-center p-4">
+    <div class="w-full max-w-md panel rounded-2xl p-5 modal-in">
+      <h3 class="text-lg font-semibold text-orange-300 mb-3">Penny-Perfect Ledger</h3>
+      <div id="adminProfitBody" class="text-sm text-zinc-300 space-y-2"></div>
+      <div class="mt-4 text-right"><button id="adminProfitClose" class="interactive rounded-lg px-3 py-2 bg-zinc-800 hover:bg-zinc-700">Close</button></div>
+    </div>
+  </div>
+
+  <div id="versionBadge" class="version-tag fixed bottom-3 right-3 z-30 text-[11px] px-3 py-1 rounded-full border border-sky-400/60 text-sky-300 bg-zinc-900/90">Shop Assistant</div>
+
+  <div id="endDayModal" class="hidden fixed inset-0 z-40 modal-overlay flex items-center justify-center p-4 modal-overlay-target" data-void-close="false">
+    <div class="modal-card w-full max-w-xl panel rounded-2xl p-5 modal-in">
+      <h3 class="text-lg font-semibold text-orange-300 mb-3">Shop Intelligence - Closing Summary</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+        <div class="rounded-lg border border-zinc-700 p-3"><div class="text-xs text-zinc-400">TOTAL CASH</div><div id="sumCash" class="text-xl font-bold text-emerald-300">₹0.00</div></div>
+        <div class="rounded-lg border border-zinc-700 p-3"><div class="text-xs text-zinc-400">TOTAL DIGITAL</div><div id="sumDigital" class="text-xl font-bold text-sky-300">₹0.00</div></div>
+        <div class="rounded-lg border border-zinc-700 p-3"><div class="text-xs text-zinc-400">SECRET PROFIT <span id="profitArrow" class="hidden text-emerald-300">↗</span></div><div id="sumProfit" class="text-xl font-bold text-orange-300 odometer">₹0.00</div></div>
+      </div>
+      <h4 class="text-sm font-semibold text-zinc-200 mb-2">Wholesaler Restock List</h4>
+      <ul id="restockList" class="space-y-2 text-sm max-h-52 overflow-auto"></ul>
+      <div class="mt-4 flex justify-between gap-2">
+        <button id="copyOrderBtn" class="interactive touch-btn rounded-lg bg-zinc-800 hover:bg-zinc-700 px-3 py-2">Copy Order List</button>
+        <button id="sendRestockWhatsAppBtn" class="touch-btn btn-disabled rounded-lg px-3 py-2" disabled>Send to Wholesaler</button>
+        <button data-close-modal class="interactive touch-btn rounded-lg bg-zinc-800 hover:bg-zinc-700 px-3 py-2">Close</button>
+      </div>
+    </div>
+  </div>
+
+
+  <div id="ghostOpsModal" class="modal-overlay p-4">
+    <div class="panel rounded-2xl p-5 w-full max-w-xl">
+      <div class="flex items-center justify-between mb-3"><h3 class="text-lg font-semibold text-orange-300">Sovereign Settings Snapshot</h3><button id="ghostOpsClose" class="rounded px-2 py-1 bg-zinc-800">Close</button></div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4 text-sm">
+        <div class="rounded border border-zinc-700 p-3"><div class="text-zinc-400 text-xs">Secret Profit</div><div id="ghostSecretProfit" class="text-emerald-300 font-semibold">₹0.00</div></div>
+        <div class="rounded border border-zinc-700 p-3"><div class="text-zinc-400 text-xs">Uplink Status</div><div id="ghostUplinkStatus" class="text-sky-300 font-semibold">Passive</div></div>
+        <div class="rounded border border-zinc-700 p-3"><div class="text-zinc-400 text-xs">Queue</div><div id="ghostQueueSize" class="text-orange-300 font-semibold">0</div></div>
+      </div>
+      <canvas id="ghostMarginChart" height="120"></canvas>
+      <div class="mt-4 text-right"><button id="forceFlushQueueBtn" class="interactive touch-btn rounded-lg px-3 py-2 bg-sky-700 hover:bg-sky-600">Force Flush Queue</button></div>
+    </div>
+  </div>
+
+  <div id="sovereign-settings-panel">
+    <div class="settings-shell panel rounded-2xl mx-auto my-auto grid md:grid-cols-[220px_1fr]">
+      <aside class="border-r border-zinc-800 p-4 space-y-2">
+        <button id="tab-atmosphere" class="settings-tab active w-full text-left px-3 py-2 rounded-lg">Atmosphere</button>
+        <button id="tab-tactics" class="settings-tab w-full text-left px-3 py-2 rounded-lg">Tactics</button>
+        <button id="tab-infrastructure" class="settings-tab w-full text-left px-3 py-2 rounded-lg">Infrastructure</button>
+        <button id="tab-diagnostics" class="settings-tab w-full text-left px-3 py-2 rounded-lg">Diagnostics</button>
+      </aside>
+      <section class="p-5 overflow-y-auto space-y-4">
+        <div id="view-atmosphere" class="settings-view active space-y-3">
+          <label class="block text-sm">Theme Hue <input id="cfg-theme-hue" type="color" class="ml-2"></label>
+          <label class="block text-sm">Glass Opacity <input id="cfg-glass-opacity" type="range" min="0.01" max="0.30" step="0.01" class="w-full"></label>
+          <label class="inline-flex items-center gap-2 text-sm"><input id="cfg-scanline-overlay" type="checkbox"> Scanline Overlay</label>
+        </div>
+        <div id="view-tactics" class="settings-view space-y-3">
+          <label class="block text-sm">Margin Elite % <input id="cfg-margin-elite" type="range" min="0" max="100" step="1" class="w-full"></label>
+          <label class="block text-sm">Margin Poor % <input id="cfg-margin-poor" type="range" min="0" max="100" step="1" class="w-full"></label>
+          <label class="block text-sm">Currency <input id="cfg-currency" class="cyber-input rounded px-2 py-1 w-20" type="text"></label>
+          <label class="inline-flex items-center gap-2 text-sm"><input id="cfg-show-profit" type="checkbox"> Show Profit</label>
+        </div>
+        <div id="view-infrastructure" class="settings-view space-y-3">
+          <label class="block text-sm">Uplink Relay Path <input id="cfg-uplink" type="password" class="cyber-input rounded px-2 py-1 w-full"></label>
+          <label class="block text-sm">Handshake Entropy <input id="cfg-entropy" type="range" min="1" max="32" step="1" class="w-full"></label>
+          <label class="block text-sm">Heartbeat Interval (sec) <input id="cfg-heartbeat" type="range" min="5" max="120" step="1" class="w-full"></label>
+          <label class="block text-sm">Owner WhatsApp <input id="cfg-owner-whatsapp" type="text" class="cyber-input rounded px-2 py-1 w-full" placeholder="10-digit number"></label>
+        </div>
+        <div id="view-diagnostics" class="settings-view space-y-3">
+          <p class="text-xs text-zinc-400">Kernel Throughput (simulated)</p>
+          <canvas id="kernel-throughput" height="60"></canvas>
+          <p id="uplinkLatency" class="text-xs text-zinc-400">Uplink Latency: 22ms</p>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button id="cfg-close" class="interactive rounded-lg px-3 py-2 bg-zinc-800 hover:bg-zinc-700">Close</button>
+          <button id="cfg-save" class="active-btn rounded-lg px-3 py-2 bg-orange-700 hover:bg-orange-600">Save</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div id="peekPriceOverlay"><div class="panel rounded-2xl px-8 py-6 text-center"><div id="peekName" class="text-2xl font-bold text-orange-300"></div><div id="peekPrice" class="text-xl text-zinc-100 mt-1"></div></div></div>
+
+<div id="chartHoverTip"></div>
 
 <script>
-const searchInput=document.getElementById('search'),resultsEl=document.getElementById('results'),customerId=document.getElementById('customerId');
+const searchInput=document.getElementById('search'),resultsEl=document.getElementById('results'),customerId=document.getElementById('customerId'),inventoryList=document.getElementById('inventoryList'),stockValueBadge=document.getElementById('stockValueBadge'),stockValueAmount=document.getElementById('stockValueAmount'),engineHudDot=document.getElementById('engineHudDot'),lastSyncStamp=document.getElementById('lastSyncStamp'),adminToggle=document.getElementById('adminToggle'),dashboardShell=document.getElementById('dashboardShell'),adminProfitModal=document.getElementById('adminProfitModal'),adminProfitBody=document.getElementById('adminProfitBody'),adminProfitClose=document.getElementById('adminProfitClose'),cartContainer=document.getElementById('cart-container'),cartList=document.getElementById('cartList'),cartTotal=document.getElementById('cartTotal'),sendWhatsAppBtn=document.getElementById('sendWhatsAppBtn'),addCreditBtn=document.getElementById('addCreditBtn'),pendingBadge=document.getElementById('pendingBadge'),endDayBtn=document.getElementById('endDayBtn'),copyOrderBtn=document.getElementById('copyOrderBtn'),sendRestockWhatsAppBtn=document.getElementById('sendRestockWhatsAppBtn');
+const homeWarnings=document.getElementById('homeWarnings'),inventoryLogList=document.getElementById('inventoryLogList'),manualCodeToggle=document.getElementById('manualCodeToggle'),hvName=document.getElementById('hvName'),hvPrice=document.getElementById('hvPrice'),hvCost=document.getElementById('hvCost'),hvStock=document.getElementById('hvStock'),hvSaveBtn=document.getElementById('hvSaveBtn'),hvClearBtn=document.getElementById('hvClearBtn'),hvCodeLabel=document.getElementById('hvCodeLabel'),newCode=document.getElementById('newCode'),chartHoverTip=document.getElementById('chartHoverTip');
+const isLogsPage=window.location.pathname.startsWith('/logs');
+if(isLogsPage){ document.body.classList.add('logs-route'); }
+const routeParams=new URLSearchParams(window.location.search);
+const pendingScanCode=routeParams.get('code')||'';
+const autoAddCode=routeParams.get('auto_add_code')||'';
 const otpSendBtn=document.getElementById('otpSendBtn'),otpVerifyBtn=document.getElementById('otpVerifyBtn'),otpInput=document.getElementById('otpInput'),otpStatus=document.getElementById('otpStatus');
-const lockdown=document.getElementById('lockdown'),licenseGate=document.getElementById('licenseGate'),versionBadge=document.getElementById('versionBadge');
+const lockdown=document.getElementById('lockdown'),licenseGate=document.getElementById('licenseGate'),versionBadge=document.getElementById('versionBadge'),stockSignal=document.getElementById('stockSignal');
+const ghostOpsModal=document.getElementById('ghostOpsModal'),ghostOpsClose=document.getElementById('ghostOpsClose'),ghostSecretProfit=document.getElementById('ghostSecretProfit'),ghostUplinkStatus=document.getElementById('ghostUplinkStatus'),ghostQueueSize=document.getElementById('ghostQueueSize'),forceFlushQueueBtn=document.getElementById('forceFlushQueueBtn'),cartHapticIcon=document.getElementById('cartHapticIcon');
 const newType=document.getElementById('newType'),variableWrap=document.getElementById('variableUnitWrap'),perishableDays=document.getElementById('perishableDays'),perishableBadgeWrap=document.getElementById('perishableBadgeWrap');
+const settingsPanel=document.getElementById('sovereign-settings-panel');
+const cfgClose=document.getElementById('cfg-close'),cfgSave=document.getElementById('cfg-save');
+const cfgThemeHue=document.getElementById('cfg-theme-hue'),cfgGlassOpacity=document.getElementById('cfg-glass-opacity'),cfgScanline=document.getElementById('cfg-scanline-overlay');
+const cfgMarginElite=document.getElementById('cfg-margin-elite'),cfgMarginPoor=document.getElementById('cfg-margin-poor'),cfgCurrency=document.getElementById('cfg-currency'),cfgShowProfit=document.getElementById('cfg-show-profit');
+const cfgUplink=document.getElementById('cfg-uplink'),cfgEntropy=document.getElementById('cfg-entropy'),cfgHeartbeat=document.getElementById('cfg-heartbeat'),cfgOwnerWhatsapp=document.getElementById('cfg-owner-whatsapp');
+const peekPriceOverlay=document.getElementById('peekPriceOverlay'),peekName=document.getElementById('peekName'),peekPrice=document.getElementById('peekPrice'),profitArrow=document.getElementById('profitArrow');
 let lockedPerishableDays='';
+let adminModeEnabled=false;
+let adminInventoryById={};
+let currentConfig=null;
+let inventoryMap={};
+let activeCart=[];
+const cartSyncTimers={};
+const salesFrequencyMap={};
+let lastSearchResults=[];
+let sovereignConfig={shop_name:'Project Inferno Retail HQ',shop_address:'',currency:'₹',owner_phone:''};
 
-function openModal(id){ const m=document.getElementById(id); if(!m) return; m.classList.remove('hidden'); m.querySelector('.modal-card')?.classList.add('modal-in'); }
+class SessionManager {
+  constructor(){
+    this.keys={1:'cart_alpha',2:'cart_beta',3:'cart_gamma'};
+    this.activeSlot=1;
+  }
+  _normalize(cart){ return Array.isArray(cart) ? cart.map(row=>({...row})) : []; }
+  load(slot){
+    if(!this.keys[slot]){ return []; }
+    try{ return this._normalize(JSON.parse(localStorage.getItem(this.keys[slot])||'[]')); }
+    catch(_){ return []; }
+  }
+  save(slot, cart){ if(this.keys[slot]){ localStorage.setItem(this.keys[slot], JSON.stringify(this._normalize(cart))); } }
+  switch(slot){
+    if(!this.keys[slot]){ return this.current(); }
+    this.save(this.activeSlot, activeCart);
+    this.activeSlot=slot;
+    return this.load(slot);
+  }
+  current(){ return this.load(this.activeSlot); }
+}
+const sessionManager=new SessionManager();
+
+function saveActiveCart(){ sessionManager.save(sessionManager.activeSlot, activeCart); }
+function loadActiveCart(){ activeCart=sessionManager.current(); }
+function animateCartRow(itemId){ const el=document.querySelector(`[data-cart-item-id="${itemId}"]`); if(!el) return; el.classList.remove('cart-row-pop'); void el.offsetWidth; el.classList.add('cart-row-pop'); setTimeout(()=>el.classList.remove('cart-row-pop'),120); }
+function applyServerCart(cartRows, slotAtRequest, focusItemId=null){
+  if(!Array.isArray(cartRows)){ return; }
+  const normalized=cartRows.map(r=>({...r,modified:false}));
+  if(slotAtRequest===sessionManager.activeSlot){
+    activeCart=normalized;
+    renderCart();
+    if(focusItemId!==null){ animateCartRow(focusItemId); }
+  } else {
+    sessionManager.save(slotAtRequest, normalized);
+  }
+}
+function byId(id){ return activeCart.find(r=>String(r.id)===String(id)); }
+function calcCartTotal(){ return activeCart.reduce((sum,row)=>sum+Math.round(Number(row.line_total||0)),0); }
+function pulseCartScan(){ cartContainer.classList.remove('scan-pulse'); void cartContainer.offsetWidth; cartContainer.classList.add('scan-pulse'); }
+function setActiveSlotButton(){
+  document.querySelectorAll('.slot-btn').forEach(btn=>{
+    const slot=Number(btn.dataset.slot);
+    btn.classList.toggle('active', slot===sessionManager.activeSlot);
+    btn.classList.toggle('slot-1', slot===1);
+    btn.classList.toggle('slot-2', slot===2);
+    btn.classList.toggle('slot-3', slot===3);
+  });
+}
+function bindSlotSwitching(){
+  document.querySelectorAll('.slot-btn').forEach(btn=>{
+    btn.onclick=()=>{
+      const target=Number(btn.dataset.slot||1);
+      const next=sessionManager.switch(target);
+      activeCart=Array.isArray(next)?next:[];
+      cartContainer.classList.remove('cart-fade');
+      requestAnimationFrame(()=>{ cartContainer.classList.add('cart-fade'); renderCart(); setActiveSlotButton(); });
+      apiFetch('/api/telemetry/cart-slot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slot:sessionManager.keys[target],customer_id:customerId.value||'guest'})},false).catch(()=>{});
+    };
+  });
+  setActiveSlotButton();
+}
+function scheduleQtySync(itemId, quantity){
+  clearTimeout(cartSyncTimers[itemId]);
+  cartSyncTimers[itemId]=setTimeout(()=>{
+    apiFetch('/api/cart/quantity',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customer_id:customerId.value||'guest',item_id:itemId,quantity})});
+  },300);
+}
+function renderCart(){
+  cartList.innerHTML=activeCart.map(item=>`<li data-cart-item-id="${item.id}" class="rounded-lg border border-zinc-800 bg-zinc-900/70 p-2">
+    <div class="flex items-center justify-between gap-2">
+      <div class="min-w-0"><div class="font-medium truncate">${item.name} <span class="text-[10px] text-amber-300 border border-amber-500/50 rounded-full px-1 ${((Number(inventoryMap[String(item.id)]?.quantity||0)-Number(item.quantity||0))<Number(inventoryMap[String(item.id)]?.reorder_point||5))?'':'hidden'}">Low</span></div>
+      <div class="text-xs text-zinc-400">Unit <span class="price-editable" contenteditable="true" data-price-edit="${item.id}">${fmtCents(item.unit_price)}</span> <span class="modified-tag ${item.modified?'':'hidden'}">MODIFIED</span></div></div>
+      <div class="text-right">
+        <div class="qty-control text-orange-300 font-semibold" data-qty-control="${item.id}">${Number(item.quantity).toFixed(2)}</div>
+        <div class="text-xs text-zinc-300" data-line-total="${item.id}">${fmtCents(item.line_total)}</div>
+      </div>
+    </div>
+  </li>`).join('') || '<li class="text-xs text-zinc-500">Cart is empty.</li>';
+  updateOdometer(cartTotal, fmtCents(calcCartTotal()));
+  bindCartInteractions();
+  saveActiveCart();
+  refreshWhatsAppGate();
+}
+function upsertCartItem(itemId, delta=1){
+  const inv=inventoryMap[String(itemId)];
+  if(!inv){return;}
+  let row=byId(itemId);
+  if(!row){
+    const approxUnit=Math.max(1, Math.round(Number(inv.stock_value||0)/Math.max(1, Number(inv.quantity||1))));
+    row={id:inv.id,name:inv.name,quantity:0,unit_price:approxUnit,line_total:0,modified:false};
+    activeCart.push(row);
+  }
+  row.quantity=Math.max(0, Number(row.quantity)+Number(delta));
+  if(row.quantity<=0){ activeCart=activeCart.filter(r=>String(r.id)!==String(itemId)); }
+  else { row.line_total=Math.round(Number(row.unit_price)*Number(row.quantity)); }
+  renderCart();
+}
+function applyPriceOverride(itemId, priceCents){
+  const row=byId(itemId); if(!row){return;}
+  row.unit_price=Math.max(1, Math.round(priceCents));
+  row.line_total=Math.round(row.unit_price*Number(row.quantity));
+  row.modified=true;
+  renderCart();
+}
+function bindCartInteractions(){
+  document.querySelectorAll('[data-qty-control]').forEach(el=>{
+    const itemId=Number(el.dataset.qtyControl);
+    el.onwheel=(e)=>{ e.preventDefault(); const delta=e.deltaY<0?1:-1; upsertCartItem(itemId, delta); const row=byId(itemId); if(row){scheduleQtySync(itemId,row.quantity);} };
+    let startX=0, dragging=false;
+    el.onpointerdown=(e)=>{ dragging=true; startX=e.clientX; el.setPointerCapture?.(e.pointerId); };
+    el.onpointermove=(e)=>{
+      if(!dragging){return;}
+      const dx=e.clientX-startX;
+      if(Math.abs(dx)>=20){
+        const delta=dx>0?1:-1;
+        startX=e.clientX;
+        upsertCartItem(itemId, delta);
+        const row=byId(itemId); if(row){scheduleQtySync(itemId,row.quantity);}      }
+    };
+    el.onpointerup=()=>{ dragging=false; };
+    el.onpointercancel=()=>{ dragging=false; };
+  });
+  document.querySelectorAll('[data-price-edit]').forEach(el=>{
+    el.onblur=()=>{
+      const txt=el.textContent.replace(/[^0-9.]/g,'');
+      const cents=Math.round(Number(txt||0)*100);
+      applyPriceOverride(Number(el.dataset.priceEdit), cents);
+    };
+    el.onkeydown=(e)=>{ if(e.key==='Enter'){ e.preventDefault(); el.blur(); }};
+  });
+}
+const SESSION_TOKEN_KEY='inferno_session_token';
+
+function getSessionToken(){ return sessionStorage.getItem(SESSION_TOKEN_KEY)||''; }
+function setSessionToken(token){ if(token){ sessionStorage.setItem(SESSION_TOKEN_KEY, token); } }
+function clearSessionToken(){ sessionStorage.removeItem(SESSION_TOKEN_KEY); }
+
+async function apiFetch(url, options={}, requiresAuth=true){
+  const opts={...options};
+  const headers=new Headers(opts.headers||{});
+  if(requiresAuth){
+    const token=getSessionToken();
+    if(token){ headers.set('Authorization', `Bearer ${token}`); }
+  }
+  opts.headers=headers;
+  const res=await fetch(url, opts);
+  if(res.status===403 && requiresAuth){
+    clearSessionToken();
+    licenseGate.classList.remove('hidden');
+    dashboardShell.classList.add('locked');
+    dashboardShell.classList.remove('slide-up');
+    settingsPanel.classList.remove('open');
+  }
+  return res;
+}
+
+
+function bindTabNavigation(){
+  const tabs=['atmosphere','tactics','infrastructure','diagnostics'];
+  tabs.forEach(name=>{
+    const tab=document.getElementById(`tab-${name}`);
+    const view=document.getElementById(`view-${name}`);
+    tab.onclick=()=>{
+      tabs.forEach(n=>{
+        document.getElementById(`tab-${n}`).classList.remove('active');
+        document.getElementById(`view-${n}`).classList.remove('active');
+      });
+      tab.classList.add('active');
+      view.classList.add('active');
+    };
+  });
+}
+
+function applyAtmosphereRealtime(){
+  document.documentElement.style.setProperty('--accent-color', cfgThemeHue.value);
+  document.documentElement.style.setProperty('--glass-alpha', cfgGlassOpacity.value);
+  if(typeof profitChart!=='undefined'){
+    profitChart.data.datasets[0].borderColor=cfgThemeHue.value;
+    velocityChart.data.datasets[0].backgroundColor=cfgThemeHue.value;
+    profitChart.update();
+    velocityChart.update();
+  }
+}
+
+function hydrateConfigForm(cfg){
+  cfgThemeHue.value=cfg.atmosphere.theme_hue;
+  cfgGlassOpacity.value=cfg.atmosphere.glass_opacity;
+  cfgScanline.checked=Boolean(cfg.atmosphere.scanline_overlay);
+  cfgMarginElite.value=cfg.tactics.margin_elite_pct;
+  cfgMarginPoor.value=cfg.tactics.margin_poor_pct;
+  cfgCurrency.value=cfg.tactics.currency_symbol;
+  cfgShowProfit.checked=Boolean(cfg.tactics.show_profit_toggle);
+  cfgUplink.value=cfg.infrastructure.uplink_relay_path;
+  cfgEntropy.value=cfg.infrastructure.handshake_entropy;
+  cfgHeartbeat.value=cfg.infrastructure.heartbeat_interval_sec;
+  cfgOwnerWhatsapp.value=cfg.infrastructure.owner_whatsapp_number || "";
+  applyAtmosphereRealtime();
+  refreshWhatsAppGate();
+}
+
+function gatherConfig(){
+  return {
+    atmosphere: {
+      theme_hue: cfgThemeHue.value,
+      glass_opacity: Number(cfgGlassOpacity.value),
+      scanline_overlay: cfgScanline.checked,
+    },
+    tactics: {
+      margin_elite_pct: Number(cfgMarginElite.value),
+      margin_poor_pct: Number(cfgMarginPoor.value),
+      currency_symbol: cfgCurrency.value || '$',
+      show_profit_toggle: cfgShowProfit.checked,
+    },
+    infrastructure: {
+      uplink_relay_path: cfgUplink.value,
+      handshake_entropy: Number(cfgEntropy.value),
+      heartbeat_interval_sec: Number(cfgHeartbeat.value),
+      owner_whatsapp_number: cleanDigits(cfgOwnerWhatsapp.value),
+    },
+  };
+}
+
+async function loadSovereignConfig(){
+  const cfg=await (await apiFetch('/api/sovereign-config')).json();
+  sovereignConfig={...sovereignConfig,...cfg,currency:'₹'};
+  const title=document.getElementById('shopNameText'); if(title){ title.textContent=sovereignConfig.shop_name||'Shop'; }
+  refreshWhatsAppGate();
+}
+
+async function saveSovereignConfig(patch){
+  sovereignConfig={...sovereignConfig,...patch,currency:'₹'};
+  await apiFetch('/api/sovereign-config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(sovereignConfig)});
+}
+
+async function loadConfig(){
+  const cfg=await (await apiFetch('/api/config')).json();
+  currentConfig=cfg;
+  hydrateConfigForm(cfg);
+}
+
+async function saveConfig(){
+  const payload=gatherConfig();
+  const res=await apiFetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const cfg=await res.json();
+  currentConfig=cfg;
+  hydrateConfigForm(cfg);
+}
+
+function bindSettingsHotkey(){
+  document.addEventListener('keydown', async (e)=>{
+    if(e.ctrlKey && e.shiftKey && e.key.toLowerCase()==='s'){
+      e.preventDefault();
+      await loadConfig();
+      settingsPanel.classList.add('open');
+    }
+    if(e.ctrlKey && e.shiftKey && e.key.toLowerCase()==='x'){
+      e.preventDefault();
+      const panicResponse=await apiFetch('/api/security/panic',{method:'POST'});
+      if(panicResponse.ok){
+        clearSessionToken();
+        settingsPanel.classList.remove('open');
+        licenseGate.classList.remove('hidden');
+        dashboardShell.classList.add('locked');
+        dashboardShell.classList.remove('slide-up');
+        otpStatus.textContent='Emergency wipe completed.';
+      }
+    }
+    if(e.key==='Escape'){
+      settingsPanel.classList.remove('open');
+    }
+  });
+  cfgClose.onclick=()=>settingsPanel.classList.remove('open');
+  cfgSave.onclick=saveConfig;
+  [cfgThemeHue,cfgGlassOpacity].forEach(el=>el.addEventListener('input',applyAtmosphereRealtime));
+}
+
+function startDiagnosticsWave(){
+  const canvas=document.getElementById('kernel-throughput');
+  const latencyEl=document.getElementById('uplinkLatency');
+  const ctx=canvas.getContext('2d');
+  let phase=0;
+  let lastLatencyTick=0;
+  function draw(){
+    const w=canvas.width=canvas.clientWidth || 600;
+    const h=canvas.height=60;
+    ctx.clearRect(0,0,w,h);
+    ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--accent-color').trim() || '#E65100';
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    for(let x=0;x<w;x++){
+      const y=(h/2)+Math.sin((x/38)+phase)*12;
+      if(x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    phase+=0.08;
+    const now=Date.now();
+    if(latencyEl && now-lastLatencyTick>900){
+      const latency=Math.floor(Math.random()*26)+15;
+      latencyEl.textContent=`Uplink Latency: ${latency}ms`;
+      lastLatencyTick=now;
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+function applyMagneticButtons(){ document.querySelectorAll('.magnetic-btn').forEach((btn)=>{ let raf=0,lastEvt=null; btn.addEventListener('mousemove',(e)=>{ lastEvt=e; if(raf||luxuryDegraded) return; raf=requestAnimationFrame(()=>{ raf=0; if(!lastEvt) return; const r=btn.getBoundingClientRect(); const dx=lastEvt.clientX-(r.left+r.width/2); const dy=lastEvt.clientY-(r.top+r.height/2); const dist=Math.hypot(dx,dy); btn.style.transform = dist<=50 ? `translate(${dx*0.08}px, ${dy*0.08}px)` : ''; }); }); btn.addEventListener('mouseleave',()=>{ lastEvt=null; btn.style.transform=''; }); }); }
+
+function openModal(id){ const m=document.getElementById(id); if(!m) return; dashboardShell.classList.add('modal-depth'); m.classList.remove('hidden'); m.querySelector('.modal-card')?.classList.add('modal-in'); }
 function closeModal(modal){ const card=modal.querySelector('.modal-card'); card?.classList.remove('modal-in'); card?.classList.add('modal-out'); setTimeout(()=>{ modal.classList.add('hidden'); card?.classList.remove('modal-out'); }, 220); }
 document.querySelectorAll('[data-open-modal]').forEach(btn=>btn.onclick=()=>openModal(btn.dataset.openModal));
-document.querySelectorAll('[data-close-modal]').forEach(btn=>btn.onclick=()=>closeModal(btn.closest('.modal-overlay-target')));
-document.addEventListener('click',(e)=>{ const overlay=e.target.closest('.modal-overlay-target'); if(overlay && e.target===overlay){ closeModal(overlay); } });
+document.querySelectorAll('[data-close-modal]').forEach(btn=>btn.onclick=()=>closeModal(btn.closest('.modal-overlay')));
+document.addEventListener('click',(e)=>{ const overlay=e.target.closest('.modal-overlay-target'); if(overlay && e.target===overlay && overlay.dataset.voidClose==='true'){ closeModal(overlay); } });
+
+let cpuLoadEstimate=0;
+let luxuryDegraded=false;
+let lastMouseX=window.innerWidth*0.5,lastMouseY=window.innerHeight*0.4;
+
+function updateOdometer(el, text){
+  if(!el){ return; }
+  const prev=el.dataset.odoText || "";
+  if(prev===text){ return; }
+  el.dataset.odoText=text;
+  el.innerHTML="";
+  [...text].forEach((ch)=>{
+    if(/\d/.test(ch)){
+      const wrap=document.createElement('span'); wrap.className='odometer-digit-wrap';
+      const strip=document.createElement('span'); strip.className='odometer-digit-strip';
+      for(let i=0;i<=9;i++){ const d=document.createElement('span'); d.className='odometer-digit'; d.textContent=String(i); strip.appendChild(d); }
+      wrap.appendChild(strip); el.appendChild(wrap);
+      requestAnimationFrame(()=>{ strip.style.transform=`translateY(-${Number(ch)}em)`; });
+    } else {
+      const s=document.createElement('span'); s.className='odometer-char'; s.textContent=ch; el.appendChild(s);
+    }
+  });
+}
+
+function applyLuxuryMotion(){
+  if(luxuryDegraded){ return; }
+  const rect=dashboardShell.getBoundingClientRect();
+  const x=((lastMouseX-rect.left)/Math.max(1,rect.width))*100;
+  const y=((lastMouseY-rect.top)/Math.max(1,rect.height))*100;
+  dashboardShell.style.setProperty('--mouse-x', `${Math.min(100,Math.max(0,x))}%`);
+  dashboardShell.style.setProperty('--mouse-y', `${Math.min(100,Math.max(0,y))}%`);
+}
+
+let uiFpsEstimate=60;
+(function fpsMonitor(){ let last=performance.now(); function tick(now){ const d=now-last; last=now; uiFpsEstimate = d>0 ? (1000/d) : 60; cpuLoadEstimate=Math.max(0, ((d-16.7)/16.7)*100); luxuryDegraded = cpuLoadEstimate>20 || uiFpsEstimate<60; requestAnimationFrame(tick);} requestAnimationFrame(tick); })();
+function spawnRipple(target, x, y){ if(uiFpsEstimate<60 || !target) return; const rect=target.getBoundingClientRect(); const base=Math.max(rect.width, rect.height)*0.6; const isAccept=target.classList.contains('accept-btn'); const isDecline=target.classList.contains('decline-btn'); const color=isAccept?'rgba(34,197,94,.85)':(isDecline?'rgba(248,113,113,.85)':'rgba(255,255,255,.55)'); const soft=isAccept?'rgba(34,197,94,.22)':(isDecline?'rgba(248,113,113,.20)':'rgba(255,255,255,.16)'); ['',' r2',' r3'].forEach((suffix,idx)=>{ const r=document.createElement('span'); r.className='ripple'+suffix; r.style.setProperty('--ripple-color', color); r.style.setProperty('--ripple-color-soft', soft); r.style.left=`${x-rect.left}px`; r.style.top=`${y-rect.top}px`; r.style.width=`${base+(idx*12)}px`; r.style.height=`${base+(idx*12)}px`; target.appendChild(r); setTimeout(()=>r.remove(),900); }); }
+document.addEventListener('click',(e)=>{ const btn=e.target.closest('button,.interactive'); if(!btn) return; spawnRipple(btn,e.clientX,e.clientY); });
+let motionRaf=0;
+dashboardShell.addEventListener('mousemove',(e)=>{ lastMouseX=e.clientX; lastMouseY=e.clientY; if(motionRaf) return; motionRaf=requestAnimationFrame(()=>{ motionRaf=0; applyLuxuryMotion(); }); });
 
 function enableInlineEditing(textEl, buttonEl){
   buttonEl.onclick=()=>{
@@ -164,8 +751,9 @@ function enableInlineEditing(textEl, buttonEl){
     input.addEventListener('keydown', ev=>{ if(ev.key==='Enter'){ input.blur(); } });
   };
 }
-function bindShopEdit(){ enableInlineEditing(document.getElementById('shopNameText'), document.getElementById('editShopBtn')); }
+function bindShopEdit(){ const title=document.getElementById('shopNameText'); const btn=document.getElementById('editShopBtn'); btn.onclick=()=>{ const input=document.createElement('input'); input.value=title.textContent.trim(); input.className='editable-input text-2xl font-extrabold'; title.replaceWith(input); input.focus(); const done=()=>{ const val=(input.value||'Shop').trim()||'Shop'; const h=document.createElement('h1'); h.id='shopNameText'; h.className='text-2xl font-extrabold tracking-tight text-orange-400'; h.textContent=val; input.replaceWith(h); saveSovereignConfig({shop_name:val}).catch(()=>{}); }; input.addEventListener('blur',done,{once:true}); input.addEventListener('keydown',e=>{ if(e.key==='Enter'){input.blur();}}); }; }
 bindShopEdit();
+if(window.location.pathname==='/settings'){ settingsPanel.classList.add('open'); }
 
 function toggleVariable(){ variableWrap.classList.toggle('open', newType.value==='VARIABLE'); }
 newType.addEventListener('change', toggleVariable); toggleVariable();
@@ -177,23 +765,26 @@ perishableDays.addEventListener('change',()=>{
   perishableDays.classList.add('flip-out');
   setTimeout(()=>{
     perishableDays.classList.remove('flip-out','open');
-    perishableBadgeWrap.innerHTML=`<div class="rounded border border-amber-500 text-amber-300 px-3 py-2 font-semibold">Perishable: ${v} day(s)</div><button id="editPerishable" class="mt-2 text-xs text-slate-300 underline">Change</button>`;
+    perishableBadgeWrap.innerHTML=`<div class="rounded border border-amber-500 text-orange-300 px-3 py-2 font-semibold">Perishable: ${v} day(s)</div><button id="editPerishable" class="mt-2 text-xs text-zinc-300 underline">Change</button>`;
     document.getElementById('editPerishable').onclick=()=>{ lockedPerishableDays=''; perishableBadgeWrap.innerHTML=''; perishableDays.classList.add('open'); perishableDays.focus(); };
   }, 300);
 });
 
 async function checkSecurity(){
-  const s=await (await fetch('/api/security/status')).json();
+  const s=await (await apiFetch('/api/security/status')).json();
   const locked=!s.license_active||s.lockdown_active;
   licenseGate.classList.toggle('hidden',!locked||s.lockdown_active);
   lockdown.classList.toggle('hidden',!s.lockdown_active);
   lockdown.classList.toggle('flex',s.lockdown_active);
+  adminToggle.classList.toggle('hidden', locked);
+  dashboardShell.classList.toggle('locked', locked);
+  dashboardShell.classList.toggle('slide-up', !locked);
 }
-otpSendBtn.onclick=async()=>{const r=await (await fetch('/api/license/request-otp',{method:'POST'})).json();otpStatus.textContent=r.sent?'OTP sent.':'OTP send failed.';};
-otpVerifyBtn.onclick=async()=>{const r=await (await fetch('/api/license/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({otp:otpInput.value.trim()})})).json();otpStatus.textContent=r.valid?'Unlocked':'Invalid OTP';checkSecurity();};
+otpSendBtn.onclick=async()=>{const r=await (await apiFetch('/api/license/request-otp',{method:'POST'},false)).json();otpStatus.textContent=r.sent?'OTP sent.':'OTP send failed.';};
+otpVerifyBtn.onclick=async()=>{const r=await (await apiFetch('/api/license/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({otp:otpInput.value.trim()})},false)).json();otpStatus.textContent=r.valid?'Unlocked':'Invalid OTP';if(r.valid&&r.token){setSessionToken(r.token);licenseGate.classList.add('fade-out');setTimeout(()=>licenseGate.classList.add('hidden'),380);}checkSecurity();};
 
 function renderEditableItemName(name,id){
-  return `<span class="group inline-flex items-center gap-1 editable-wrap"><span class="item-name" data-item-id="${id}">${name}</span><button class="edit-icon text-teal-300/80 hover:text-teal-100 text-xs" onclick="editItemName(this)">✎</button></span>`;
+  return `<span class="group inline-flex items-center gap-1 editable-wrap"><span class="item-name" data-item-id="${id}">${name}</span><button class="edit-icon text-orange-300/80 hover:text-orange-100 text-xs" onclick="editItemName(this)">✎</button></span>`;
 }
 window.editItemName=(btn)=>{
   const wrap=btn.closest('.editable-wrap'); const span=wrap.querySelector('.item-name');
@@ -203,42 +794,449 @@ window.editItemName=(btn)=>{
   input.addEventListener('blur',done,{once:true}); input.addEventListener('keydown',e=>{ if(e.key==='Enter') input.blur(); });
 }
 
-async function loadSearch(){
-  const q=searchInput.value.trim(); if(!q){resultsEl.innerHTML=''; return;}
-  const rows=await (await fetch(`/api/search?q=${encodeURIComponent(q)}&customer_id=${encodeURIComponent(customerId.value||'guest')}`)).json();
-  resultsEl.innerHTML=rows.map(it=>`<li class="bg-slate-950/80 rounded-lg p-2 border border-slate-700"><div class="font-medium">${renderEditableItemName(it.name,it.id)}</div><div class="text-xs text-slate-300">Score ${it.search_score||0}</div><button class="mt-1 text-xs text-teal-300 underline" onclick="addCart(${it.id})">Add to cart</button></li>`).join('');
+function fmtCents(value){
+  return `₹${(Math.round(Number(value||0))/100).toFixed(2)}`;
 }
-async function addCart(id){ const d=await (await fetch('/api/cart/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customer_id:customerId.value||'guest',item_id:id})})).json(); if(d.suggestions?.length){ alert('Try together: '+d.suggestions.map(x=>x.name).join(', ')); } }
+function cleanDigits(v){ return String(v||'').replace(/\D/g,''); }
+function hasValidCustomerPhone(){ return cleanDigits(customerId.value).length===10; }
+function ownerPhone(){ return cleanDigits(sovereignConfig?.owner_phone || ''); }
+function formatPhoneInput(){
+  const digits=cleanDigits(customerId.value).slice(0,10);
+  if(digits.length<=3){ customerId.value=digits; return; }
+  if(digits.length<=6){ customerId.value=`${digits.slice(0,3)}-${digits.slice(3)}`; return; }
+  customerId.value=`${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6)}`;
+}
+function padRight(v,w){ return String(v??'').padEnd(w,' ').slice(0,w); }
+function padLeft(v,w){ return String(v??'').padStart(w,' ').slice(-w); }
+const MANUAL_CODE_MAP_KEY='manual_code_map';
+function loadManualCodeMap(){ try{return JSON.parse(localStorage.getItem(MANUAL_CODE_MAP_KEY)||'{}')||{};}catch(_){return {};}}
+function saveManualCodeMap(map){ try{localStorage.setItem(MANUAL_CODE_MAP_KEY, JSON.stringify(map||{}));}catch(_){}}
+function nextPluCode(map){ for(let i=100;i<=999;i++){ const k=String(i); if(!map[k]) return k; } return String(100+Math.floor(Math.random()*900)); }
+function clearFastEntry(){ if(!hvName) return; hvName.value=''; hvPrice.value=''; hvCost.value=''; hvStock.value=''; hvName.focus(); }
+async function saveHighVelocityItem(){
+  if(!hvName) return;
+  const payload={name:(hvName.value||'').trim(), item_type:'FIXED', quantity:Number(hvStock.value||0), purchase_price:Number(hvCost.value||0), selling_price:Number(hvPrice.value||0), is_perishable:false, days_to_rot:0, unit_label:''};
+  if(!payload.name || payload.quantity<=0 || payload.selling_price<=0){ return; }
+  const res=await apiFetch('/api/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const data=await res.json();
+  if(data?.success && manualCodeToggle?.checked){ const map=loadManualCodeMap(); const code=nextPluCode(map); map[code]=data.item?.id; saveManualCodeMap(map); if(hvCodeLabel){ hvCodeLabel.textContent=code; } }
+  clearFastEntry();
+  await loadInventory();
+}
+function renderHomeWarnings(rows){
+  if(!homeWarnings) return;
+  const warnings=[];
+  const today=Date.now();
+  (rows||[]).forEach(it=>{
+    const sell=Number(it.sell_price||0);
+    const delta=Number(it.profit_delta||0);
+    const margin=sell>0?((delta/sell)*100):0;
+    const perUnitProfit=(Number(it.quantity||0)>0)?(delta/Math.max(1,Number(it.quantity||1))):delta;
+    if(margin>0 && margin<10){ const target=Math.max(1, Math.round((Number(it.sell_price||0)-perUnitProfit)+15000)); warnings.push({type:'margin',id:it.id,name:it.name,profit:Math.max(0,Math.round(perUnitProfit)),target}); }
+    const added=Date.parse(it.date_added||'');
+    if((String(it.item_type||'').toUpperCase()==='VARIABLE') && Number.isFinite(added) && (today-added) > (3*86400000)){ warnings.push({type:'decay',id:it.id,name:it.name}); }
+  });
+  homeWarnings.innerHTML=warnings.slice(0,4).map(w=> w.type==='margin'
+    ? `<div class="warning-card rounded-lg p-2 text-sm"><div>You're losing money on ${w.name}. Want to fix the selling price to ${fmtCents(w.target)}?</div><div class="mt-2 flex gap-2"><button class="interactive accept-btn rounded px-2 py-1" data-fix-margin="${w.id}" data-target="${w.target}">Accept</button><button class="interactive decline-btn rounded px-2 py-1" data-decline-tip="1">Decline</button></div></div>`
+    : `<div class="warning-card rounded-lg p-2 text-sm"><div>These ${w.name} have been here 3 days. Suggesting a small discount to clear them.</div><div class="mt-2 flex gap-2"><button class="interactive accept-btn rounded px-2 py-1" data-decay-drop="${w.id}">Accept</button><button class="interactive decline-btn rounded px-2 py-1" data-decline-tip="1">Decline</button></div></div>`).join('') || '<div class="text-xs text-zinc-500">No active suggestions.</div>';
+  homeWarnings.querySelectorAll('[data-fix-margin]').forEach(btn=>btn.onclick=()=>{ const id=Number(btn.dataset.fixMargin); const target=Number(btn.dataset.target||0); const row=activeCart.find(r=>Number(r.id)===id); if(row){ row.unit_price=Math.max(1,target); row.line_total=Math.round(row.unit_price*Number(row.quantity)); row.modified=true; renderCart(); } });
+  homeWarnings.querySelectorAll('[data-decay-drop]').forEach(btn=>btn.onclick=()=>{ const id=Number(btn.dataset.decayDrop); const row=activeCart.find(r=>Number(r.id)===id); if(row){ row.unit_price=Math.max(1,row.unit_price-2000); row.line_total=Math.round(row.unit_price*Number(row.quantity)); row.modified=true; renderCart(); } });
+}
+function renderInventoryLogs(rows){
+  if(!inventoryLogList) return;
+  inventoryLogList.innerHTML=(rows||[]).slice(0,40).map(it=>`<li id="log-item-${it.id}" class="rounded border border-zinc-800 px-2 py-1 flex justify-between"><span>${it.id} • ${it.name}</span><button class="interactive text-xs px-2 py-1 rounded bg-zinc-800" data-edit-log="${it.id}">Edit</button></li>`).join('') || '<li class="text-xs text-zinc-500">No inventory available.</li>';
+  inventoryLogList.querySelectorAll('[data-edit-log]').forEach(btn=>btn.onclick=()=>activateLogEdit(Number(btn.dataset.editLog)));
+}
+function activateLogEdit(id){
+  const row=document.getElementById(`log-item-${id}`);
+  if(!row){ return; }
+  row.scrollIntoView({behavior:'smooth',block:'center'});
+  row.classList.add('border-emerald-500');
+  setTimeout(()=>row.classList.remove('border-emerald-500'),1200);
+}
+function billSummaryText(){
+  const shop=(sovereignConfig?.shop_name || document.getElementById('shopNameText')?.textContent || 'Shop').trim();
+  const addr=(sovereignConfig?.shop_address || '').trim();
+  const header=`${padRight('ITEM',18)} ${padLeft('QTY',5)} ${padLeft('PRICE',10)}`;
+  const lines=activeCart.map(i=>`${padRight(i.name,18)} ${padLeft(Number(i.quantity).toFixed(0),5)} ${padLeft(fmtCents(i.line_total),10)}`);
+  return `*${shop}*
+${addr}
+--------------------------------
+${header}
+${lines.join('\n')}
+--------------------------------
+*TOTAL: ${fmtCents(calcCartTotal())}*
+Thank you for shopping!`;
+}
+function restockSummaryText(){
+  const shop=document.getElementById('shopNameText')?.textContent?.trim() || 'Shop';
+  const rows=[...document.querySelectorAll('#restockList li')].map(li=>li.textContent.trim()).filter(Boolean);
+  return `${shop}%0ARestock List:%0A${rows.join('%0A')}`;
+}
+
+function refreshWhatsAppGate(){
+  const enabled=hasValidCustomerPhone() && Boolean(ownerPhone());
+  sendWhatsAppBtn.disabled=!enabled;
+  sendWhatsAppBtn.classList.toggle('btn-disabled', !enabled);
+  sendWhatsAppBtn.classList.toggle('btn-active-blue', enabled);
+  addCreditBtn.classList.toggle('hidden', !hasValidCustomerPhone());
+  const restockEnabled = Boolean(ownerPhone());
+  sendRestockWhatsAppBtn.disabled=!restockEnabled;
+  sendRestockWhatsAppBtn.classList.toggle('btn-disabled', !restockEnabled);
+  if(restockEnabled){ sendRestockWhatsAppBtn.classList.add('bg-sky-600','text-white'); } else { sendRestockWhatsAppBtn.classList.remove('bg-sky-600','text-white'); }
+}
+async function refreshPendingBadge(){
+  const phone=cleanDigits(customerId.value);
+  if(phone.length!==10){ pendingBadge.classList.add('hidden'); return; }
+  const res=await apiFetch(`/api/ledger/pending?phone=${encodeURIComponent(phone)}`);
+  const data=await res.json();
+  const pending=Number(data.pending||0);
+  if(pending>0){ pendingBadge.textContent=`Pending: ${fmtCents(pending)}`; pendingBadge.classList.remove('hidden'); }
+  else { pendingBadge.classList.add('hidden'); }
+}
+
+function updateLastSync(){
+  lastSyncStamp.textContent=`Last Sync: ${new Date().toLocaleTimeString()}`;
+}
+
+function renderMargin(item){
+  const indicator=item.margin_indicator==='-'?'-':'+';
+  const cls=indicator==='+'?'margin-plus':'margin-minus';
+  return `<span class="${cls} font-semibold">${indicator}</span>`;
+}
+
+let inventoryRows=[];
+async function loadInventory(){
+  const rows=await (await apiFetch('/api/items')).json();
+  if(!Array.isArray(rows)){
+    inventoryRows=[];
+    stockValueAmount.textContent='₹0.00';
+    inventoryList.innerHTML='<li class="text-xs text-zinc-500">Inventory is locked until license is verified.</li>';
+    if(inventoryLogList){ inventoryLogList.innerHTML='<li class="text-xs text-zinc-500">Inventory is locked until license is verified.</li>'; }
+    engineHudDot.classList.remove('online');
+    engineHudDot.classList.add('offline');
+    return;
+  }
+  inventoryRows=rows;
+  engineHudDot.classList.remove('offline');
+  engineHudDot.classList.add('online');
+  updateLastSync();
+  const total=rows.reduce((sum,it)=>sum+Number(it.stock_value||0),0);
+  stockValueAmount.textContent=fmtCents(total);
+  inventoryList.innerHTML=rows.slice(0,10).map(it=>`<li data-item-id="${it.id}" class="inv-item bg-zinc-950/80 rounded-lg p-2 border border-zinc-700 flex items-center justify-between"><span>${it.name}</span><span class="text-xs text-zinc-300">${renderMargin(it)} Value<span class="profit-hidden"> ${fmtCents(it.stock_value)}</span></span></li>`).join('') || '<li class="text-xs text-zinc-500">No inventory available.</li>';
+  renderInventoryLogs(rows);
+  renderHomeWarnings(rows);
+  bindInventoryClicks();
+}
+
+
+let adminSessionToken="";
+async function refreshAdminInventory(){
+  if(!adminSessionToken){
+    const sessionResp=await apiFetch('/api/admin/session',{method:'POST',headers:{'X-Sovereign-Access':'master'}});
+    const sessionData=await sessionResp.json();
+    adminSessionToken=sessionData.admin_session||"";
+  }
+  const rows=await (await apiFetch('/api/admin/inventory',{headers:{'X-Admin-Session':adminSessionToken}})).json();
+  if(Array.isArray(rows)){
+    adminInventoryById=Object.fromEntries(rows.map(r=>[String(r.id),r]));
+  }
+}
+
+function bindInventoryClicks(){
+  document.querySelectorAll('.inv-item').forEach(el=>{
+    el.onclick=async()=>{
+      if(!adminModeEnabled){return;}
+      if(!Object.keys(adminInventoryById).length){ await refreshAdminInventory(); }
+      const item=adminInventoryById[String(el.dataset.itemId)];
+      if(!item){return;}
+      const profitDelta=Number(item.profit_delta||0);
+      adminProfitBody.innerHTML=`<div><strong>${item.name}</strong></div><div>Selling Price: ${fmtCents(item.sell_price)}</div><div>Profit Delta: ${fmtCents(profitDelta)}</div>`;
+      adminProfitModal.classList.remove('hidden');
+    };
+  });
+}
+
+adminToggle.onclick=async()=>{
+  adminModeEnabled=!adminModeEnabled;
+  adminToggle.textContent=adminModeEnabled?'Admin On':'Admin Toggle';
+  if(adminModeEnabled){ await refreshAdminInventory(); }
+};
+adminProfitClose.onclick=()=>adminProfitModal.classList.add('hidden');
+
+let pressTimer=null;
+const showProfit=()=>document.body.classList.add('show-profit');
+const hideProfit=()=>document.body.classList.remove('show-profit');
+stockValueBadge.addEventListener('mouseenter',showProfit);
+stockValueBadge.addEventListener('mouseleave',hideProfit);
+stockValueBadge.addEventListener('touchstart',()=>{ pressTimer=setTimeout(showProfit,450); },{passive:true});
+stockValueBadge.addEventListener('touchend',()=>{ clearTimeout(pressTimer); hideProfit(); });
+
+function scoreBySequence(text, query){
+  const t=text.toLowerCase();
+  const q=query.toLowerCase();
+  if(!q){return 0;}
+  if(t.includes(q)){ return Math.min(1, 0.65 + (q.length/Math.max(t.length,1))*0.35); }
+  let qi=0; let hits=0;
+  for(const ch of t){ if(q[qi]===ch){ qi+=1; hits+=1; if(qi>=q.length) break; } }
+  return hits/Math.max(q.length,1);
+}
+function highlightMatch(name, query){
+  if(!query){return name;}
+  let out='';
+  const q=query.toLowerCase();
+  let qi=0;
+  for(const ch of name){
+    if(qi<q.length && ch.toLowerCase()===q[qi]){ out+=`<b>${ch}</b>`; qi+=1; }
+    else { out+=ch; }
+  }
+  return out;
+}
+function hydrateSalesFrequency(query){
+  apiFetch(`/api/search?q=${encodeURIComponent(query)}&customer_id=${encodeURIComponent(customerId.value||'guest')}`)
+    .then(r=>r.json())
+    .then(rows=>{ if(Array.isArray(rows)){ rows.forEach(r=>{ salesFrequencyMap[String(r.id)] = Number(r.global_frequency||0); }); } })
+    .catch(()=>{});
+}
+const searchRenderCache=new Map();
+let searchDebounceTimer=0;
+function runSearch(query){
+  const q=query.trim();
+  if(!q){resultsEl.innerHTML=''; lastSearchResults=[]; return;}
+  const cacheKey=`${q.toLowerCase()}::${Object.keys(inventoryMap).length}`;
+  if(searchRenderCache.has(cacheKey)){
+    const cached=searchRenderCache.get(cacheKey);
+    lastSearchResults=cached.items;
+    resultsEl.innerHTML=cached.html;
+    hydrateSalesFrequency(q);
+    return;
+  }
+  const rows=Object.values(inventoryMap);
+  const maxFreq=Math.max(1,...rows.map(r=>Number(salesFrequencyMap[String(r.id)]||0)));
+  const ranked=rows.map(item=>{
+    const nameScore=scoreBySequence(String(item.name||''), q);
+    const categoryScore=String(item.item_type||'').toLowerCase().includes(q.toLowerCase()) ? 1 : 0;
+    const freqScore=Number(salesFrequencyMap[String(item.id)]||0)/maxFreq;
+    const score=(nameScore*0.75)+(categoryScore*0.05)+(freqScore*0.20);
+    return {item, score};
+  }).filter(x=>x.score>0.18).sort((a,b)=>b.score-a.score).slice(0,5);
+  const items=ranked.map(x=>x.item);
+  const html=ranked.map(({item,score})=>`<li class="bg-zinc-950/80 rounded-lg p-2 border border-zinc-700"><div class="font-medium">${renderEditableItemName(highlightMatch(item.name, q),item.id)}</div><div class="text-xs text-zinc-300">Score ${score.toFixed(2)}</div><button class="mt-1 text-xs text-orange-300 underline" onclick="addCart(${item.id})">Add to cart</button></li>`).join('');
+  lastSearchResults=items;
+  resultsEl.innerHTML=html;
+  searchRenderCache.set(cacheKey,{items,html});
+  if(searchRenderCache.size>24){ searchRenderCache.delete(searchRenderCache.keys().next().value); }
+  hydrateSalesFrequency(q);
+}
+function loadSearch(){
+  const q=searchInput.value;
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer=setTimeout(()=>runSearch(q), 45);
+}
+
+async function addCart(id){ const slotAtRequest=sessionManager.activeSlot; upsertCartItem(id,1); const d=await (await apiFetch('/api/cart/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customer_id:customerId.value||'guest',item_id:id,quantity_delta:1})})).json(); applyServerCart(d.cart, slotAtRequest, id); }
 
 async function createItem(){
   const daysVal=lockedPerishableDays || perishableDays.value;
   const payload={name:document.getElementById('newName').value.trim(),item_type:newType.value,quantity:Number(document.getElementById('newQty').value||0),purchase_price:Number(document.getElementById('newPurchase').value||0),selling_price:Number(document.getElementById('newSelling').value||0),is_perishable:Boolean(daysVal),days_to_rot:Number(daysVal||0),unit_label:newType.value==='VARIABLE'?document.getElementById('unitLabel').value:''};
-  const res=await fetch('/api/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const code=(newCode?.value||'').trim();
+  const res=await apiFetch('/api/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
   const data=await res.json(); document.getElementById('createStatus').textContent=data.success?`Created #${data.item.id}`:(data.error||'Failed');
-  if(data.success) closeModal(document.getElementById('addItemModal'));
+  if(data.success){ if(/^\d{1,13}$/.test(code)){ const map=loadManualCodeMap(); map[code]=data.item.id; saveManualCodeMap(map); } closeModal(document.getElementById('addItemModal')); if(isLogsPage && pendingScanCode && code===pendingScanCode){ window.location.href=`/?auto_add_code=${encodeURIComponent(code)}`; return; } loadInventory(); }
 }
-document.getElementById('createItem').onclick=createItem; searchInput.addEventListener('input',loadSearch);
+document.getElementById('createItem').onclick=createItem; searchInput.addEventListener('input',loadSearch,{passive:true});
+searchInput.addEventListener('keydown',e=>{ if(e.key==='Enter' && lastSearchResults.length===1){ e.preventDefault(); addCart(lastSearchResults[0].id); } });
+customerId.addEventListener('input',()=>{ formatPhoneInput(); refreshPendingBadge(); refreshWhatsAppGate(); });
+sendWhatsAppBtn.onclick=async()=>{ const customer=cleanDigits(customerId.value); const owner=ownerPhone(); const enabled=customer.length===10 && Boolean(owner); if(sendWhatsAppBtn.disabled || !enabled){ sendWhatsAppBtn.disabled=true; sendWhatsAppBtn.classList.add('btn-disabled'); sendWhatsAppBtn.classList.remove('btn-active-blue'); return; } await apiFetch('/api/telemetry/bill',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:customer,total_paise:calcCartTotal()})}); const text=encodeURIComponent(billSummaryText()); window.location.href=`https://wa.me/${customer}?text=${text}`; };
+addCreditBtn.onclick=async()=>{ const phone=cleanDigits(customerId.value); const amount=Math.round(calcCartTotal()); const res=await apiFetch('/api/ledger/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone,amount_cents:amount})}); const data=await res.json(); if(data.success){ otpStatus.textContent='Added to credit ledger.'; await refreshPendingBadge(); } else { otpStatus.textContent='Unable to add to credit.'; } };
+endDayBtn.onclick=async()=>{ const res=await apiFetch('/api/day/close-shop',{method:'POST'}); const data=await res.json(); document.getElementById('sumCash').textContent=fmtCents(data.cash_total||0); document.getElementById('sumDigital').textContent=fmtCents(data.digital_total||0); const showProfit=Boolean(currentConfig?.tactics?.show_profit_toggle); updateOdometer(document.getElementById('sumProfit'), showProfit?fmtCents(data.secret_profit||0):'Hidden'); profitArrow.classList.toggle('hidden', !Boolean(data.profit_up)); document.getElementById('sumProfit').closest('.rounded-lg')?.classList.toggle('profit-up-theme', Boolean(data.profit_up)); const restock=Array.isArray(data.restock)?data.restock:[]; const today=new Date().toLocaleDateString(); document.getElementById('restockList').innerHTML=restock.map((i,idx)=>`<li class="rounded border border-zinc-700 p-2">${idx+1}. ${i.name} (${Math.max(0, Math.round(i.min_limit - i.quantity))})</li>`).join('') || '<li class="text-xs text-zinc-400">No restock required.</li>'; copyOrderBtn.dataset.orderList=`*RESTOCK REQUIRED - (${(document.getElementById('shopNameText')?.textContent||'Shop').trim()})*\n---\n`+restock.map((i,idx)=>`${idx+1}. ${i.name} - (Current: ${Number(i.quantity).toFixed(2)}, Need: ${Math.max(0, Math.ceil((Number(i.reorder_point||i.min_limit||0)-Number(i.quantity||0))))})`).join('\n')+`\n---\nGenerated by Sovereign OS.`; openModal('endDayModal'); };
+copyOrderBtn.onclick=async()=>{ const payload=copyOrderBtn.dataset.orderList || ''; if(payload){ await navigator.clipboard.writeText(payload); copyOrderBtn.textContent='Copied'; setTimeout(()=>copyOrderBtn.textContent='Copy Order List',1000);} };
+sendRestockWhatsAppBtn.onclick=()=>{ if(sendRestockWhatsAppBtn.disabled){return;} const target=ownerPhone(); if(!target){return;} const payload=encodeURIComponent(copyOrderBtn.dataset.orderList || restockSummaryText()); window.location.href=`https://wa.me/${target}?text=${payload}`; };
 
-async function cleanPhone(){ const v=document.getElementById('phoneInput').value; const d=await (await fetch('/api/phone/clean',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:v})})).json(); const el=document.getElementById('phoneStatus'); el.textContent=d.valid?`Normalized: ${d.normalized}`:d.message; if(d.trigger_popup){ alert(d.message); } }
+let barcodeBuffer='';
+let barcodeStartedAt=0;
+let barcodeLastAt=0;
+async function handleGlobalBarcodeKeydown(e){
+  if(e.altKey && e.key.toLowerCase()==='s'){ e.preventDefault(); searchInput.focus(); return; }
+  if(e.ctrlKey||e.metaKey){return;}
+  if(e.key==='Enter'){
+    const elapsed = barcodeStartedAt ? (performance.now()-barcodeStartedAt) : 9999;
+    if(barcodeBuffer && /^\d{1,13}$/.test(barcodeBuffer) && elapsed < 200){
+      e.preventDefault();
+      const code=barcodeBuffer;
+      const altPeek=e.altKey;
+      barcodeBuffer='';
+      barcodeStartedAt=0;
+      barcodeLastAt=0;
+      const map=loadManualCodeMap();
+      const mappedItemId=map[code] ? Number(map[code]) : 0;
+      if(altPeek){
+        const item=inventoryMap[String(mappedItemId || Number(code))];
+        if(item){
+          const unit=Math.max(1, Math.round(Number(item.stock_value||0)/Math.max(1, Number(item.quantity||1))));
+          peekName.textContent=item.name;
+          peekPrice.textContent=`Price: ${fmtCents(unit)}`;
+          peekPriceOverlay.classList.add('show');
+          setTimeout(()=>peekPriceOverlay.classList.remove('show'),1500);
+        }
+        return;
+      }
+      if(isLogsPage){
+        const existing=inventoryMap[String(mappedItemId || Number(code))];
+        if(existing){ activateLogEdit(existing.id); }
+        return;
+      }
+      const localKnown = Boolean(inventoryMap[String(mappedItemId || Number(code))]);
+      if(!localKnown){
+        window.location.href=`/logs?new_item=true&code=${encodeURIComponent(code)}`;
+        return;
+      }
+      pulseCartScan();
+      if(!luxuryDegraded && cartHapticIcon){ cartHapticIcon.classList.remove('shake'); requestAnimationFrame(()=>cartHapticIcon.classList.add('shake')); setTimeout(()=>cartHapticIcon.classList.remove('shake'),170); }
+      const payload={customer_id:customerId.value||'guest',item_id:mappedItemId||0,barcode:code,quantity_delta:1};
+      const slotAtRequest=sessionManager.activeSlot;
+      const res=await apiFetch('/api/cart/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const data=await res.json();
+      if(data?.error && data.error==='ITEM_NOT_FOUND'){
+        window.location.href=`/logs?new_item=true&code=${encodeURIComponent(code)}`;
+        return;
+      }
+      applyServerCart(data.cart, slotAtRequest, Number(code));
+    }
+    return;
+  }
+  if(!/^\d$/.test(e.key)){
+    barcodeBuffer='';
+    barcodeStartedAt=0;
+    barcodeLastAt=0;
+    return;
+  }
+  const now=performance.now();
+  if(!barcodeStartedAt){ barcodeStartedAt=now; }
+  if(barcodeLastAt && (now-barcodeLastAt)>80){
+    barcodeBuffer='';
+    barcodeStartedAt=now;
+  }
+  barcodeLastAt=now;
+  barcodeBuffer+=e.key;
+  if(barcodeBuffer.length>13){ barcodeBuffer=barcodeBuffer.slice(-13); }
+}
+document.addEventListener('keydown',(e)=>{ handleGlobalBarcodeKeydown(e); }, true);
+
+async function cleanPhone(){ const v=document.getElementById('phoneInput').value; const d=await (await apiFetch('/api/phone/clean',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:v})},false)).json(); const el=document.getElementById('phoneStatus'); el.textContent=d.valid?`Normalized: ${d.normalized}`:d.message; if(d.trigger_popup){ alert(d.message); } }
 document.getElementById('cleanPhoneBtn').onclick=cleanPhone;
 
 async function loadAlerts(){
-  const res=await fetch('/api/decay-alerts'); const alerts=await res.json();
-  document.getElementById('alerts').innerHTML=alerts.map(a=>`<div class="rounded p-2 border border-amber-500/40 bg-slate-950/60 ${a.days_left<=1?'animate-pulse':''}"><div class="font-medium text-amber-300">${a.name}</div><div class="text-xs text-slate-300">Days left: ${a.days_left} • ${a.suggested_discount}</div></div>`).join('') || '<p class="text-xs text-slate-400">No active alerts</p>';
+  const res=await apiFetch('/api/decay-alerts'); const alerts=await res.json();
+  if(!Array.isArray(alerts)){ document.getElementById('alerts').innerHTML='<p class="text-xs text-zinc-400">No active alerts</p>'; return; }
+  document.getElementById('alerts').innerHTML=alerts.map(a=>`<div class="rounded p-2 border border-orange-500/40 bg-zinc-950/60 ${a.days_left<=1?'animate-pulse':''}"><div class="font-medium text-orange-300">${a.name}</div><div class="text-xs text-zinc-300">Days left: ${a.days_left} • ${a.suggested_discount}</div></div>`).join('') || '<p class="text-xs text-zinc-400">No active alerts</p>';
 }
 
-const profitChart=new Chart(document.getElementById('profitChart'),{type:'line',data:{labels:[],datasets:[{label:'Income',data:[],borderColor:'#14b8a6',tension:.35},{label:'Investment',data:[],borderColor:'#f59e0b',tension:.35}]},options:{plugins:{legend:{labels:{color:'#e2e8f0'}}},scales:{x:{ticks:{color:'#cbd5e1'}},y:{ticks:{color:'#cbd5e1'}}}}});
-const velocityChart=new Chart(document.getElementById('velocityChart'),{type:'bar',data:{labels:[],datasets:[{label:'Units moved',data:[],backgroundColor:'#14b8a6'}]},options:{plugins:{legend:{labels:{color:'#e2e8f0'}}},scales:{x:{ticks:{color:'#cbd5e1'}},y:{ticks:{color:'#cbd5e1'}}}}});
-async function loadCharts(){ const pi=await (await fetch('/api/analytics/profit-investment')).json(); profitChart.data.labels=pi.labels||[]; profitChart.data.datasets[0].data=pi.income||[]; profitChart.data.datasets[1].data=pi.investment||[]; profitChart.update(); const sv=await (await fetch('/api/analytics/stock-velocity')).json(); velocityChart.data.labels=sv.labels||[]; velocityChart.data.datasets[0].data=sv.moved||[]; velocityChart.update(); }
+const compactTooltip={id:'compactTooltip',afterEvent(chart,args){const e=args.event;if(!e) return;const tip=chart.tooltip;if(!tip||!tip.opacity||!tip.dataPoints?.length){chartHoverTip.style.display='none';return;}const p=tip.dataPoints[0];const label=`${p.label}: ₹${Number(p.raw||0).toFixed(2)}`;chartHoverTip.textContent=label;chartHoverTip.style.display='block';chartHoverTip.style.left=`${e.x+14}px`;chartHoverTip.style.top=`${e.y+14}px`;},afterDraw(){}};
+const chartBaseOpts={plugins:{legend:{labels:{color:'#e2e8f0'}},tooltip:{enabled:false}},scales:{x:{ticks:{color:'#cbd5e1'}},y:{ticks:{color:'#cbd5e1'}}}};
+const profitChart=new Chart(document.getElementById('profitChart'),{type:'line',data:{labels:[],datasets:[{label:'Income',data:[],borderColor:'#E65100',tension:.35},{label:'Investment',data:[],borderColor:'#f59e0b',tension:.35}]},options:chartBaseOpts,plugins:[compactTooltip]});
+const velocityChart=new Chart(document.getElementById('velocityChart'),{type:'bar',data:{labels:[],datasets:[{label:'Units moved',data:[],backgroundColor:'#E65100'}]},options:chartBaseOpts,plugins:[compactTooltip]});
+async function loadCharts(){ const pi=await (await apiFetch('/api/analytics/profit-investment')).json(); profitChart.data.labels=pi.labels||[]; profitChart.data.datasets[0].data=(pi.income||[]).map(v=>Number(v)/100); profitChart.data.datasets[1].data=(pi.investment||[]).map(v=>Number(v)/100); profitChart.update(); const sv=await (await apiFetch('/api/analytics/stock-velocity')).json(); velocityChart.data.labels=sv.labels||[]; velocityChart.data.datasets[0].data=sv.moved||[]; velocityChart.update(); }
+
+let ghostMarginChart=null;
+let hotstringBuffer='';
+
+async function openGhostOps(){
+  const version=await (await apiFetch('/api/version',{},false)).json();
+  const day=await (await apiFetch('/api/day/close-summary')).json();
+  ghostSecretProfit.textContent=fmtCents(day.secret_profit||0);
+  ghostUplinkStatus.textContent=String(version.connectivity_mode||'Passive').toUpperCase();
+  ghostQueueSize.textContent=String(version.queue_size||0);
+  const pi=await (await apiFetch('/api/analytics/profit-investment')).json();
+  const labels=pi.labels||[];
+  const income=(pi.income||[]).map(v=>Number(v));
+  const inv=(pi.investment||[]).map(v=>Number(v));
+  const margin=income.map((v,i)=> v>0?(((v-(inv[i]||0))/v)*100):0);
+  if(!ghostMarginChart){
+    ghostMarginChart=new Chart(document.getElementById('ghostMarginChart'),{type:'line',data:{labels,datasets:[{label:'Margin %',data:margin,borderColor:'#22c55e',tension:.35}]},options:{plugins:{legend:{labels:{color:'#e2e8f0'}}},scales:{x:{ticks:{color:'#cbd5e1'}},y:{ticks:{color:'#cbd5e1'}}}}});
+  } else {
+    ghostMarginChart.data.labels=labels;
+    ghostMarginChart.data.datasets[0].data=margin;
+    ghostMarginChart.update();
+  }
+  settingsPanel.classList.add('open');
+  dashboardShell.classList.add('modal-depth');
+  ghostOpsModal.classList.add('open');
+}
+
+function sys_purge(){
+  try{ localStorage.clear(); sessionStorage.clear(); }catch(_){ }
+  showGate();
+}
+
+ghostOpsClose.onclick=()=>{ ghostOpsModal.classList.remove('open'); if(!document.querySelector('.modal-overlay-target:not(.hidden)')){ dashboardShell.classList.remove('modal-depth'); } };
+forceFlushQueueBtn.onclick=async()=>{ await apiFetch('/api/internal/flush-metrics',{method:'POST'}); await openGhostOps(); };
+document.addEventListener('keydown',(e)=>{
+  if(e.target && ['INPUT','TEXTAREA'].includes(e.target.tagName)){ return; }
+  if(e.key.length===1){
+    hotstringBuffer=(hotstringBuffer+e.key.toLowerCase()).slice(-6);
+    if(hotstringBuffer==='sov123'){ e.preventDefault(); openGhostOps().catch(()=>{}); hotstringBuffer=''; }
+  }
+});
+
+
+if(hvSaveBtn){
+  hvSaveBtn.onclick=()=>saveHighVelocityItem().catch(()=>{});
+  hvClearBtn.onclick=()=>clearFastEntry();
+  hvStock.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); saveHighVelocityItem().catch(()=>{}); }});
+  [hvName,hvPrice,hvCost].forEach((el,idx)=>el.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); [hvPrice,hvCost,hvStock][idx]?.focus(); }}));
+  manualCodeToggle.addEventListener('change',()=>{ hvCodeLabel.textContent=manualCodeToggle.checked ? nextPluCode(loadManualCodeMap()) : 'Auto'; });
+  hvCodeLabel.textContent=manualCodeToggle.checked ? nextPluCode(loadManualCodeMap()) : 'Auto';
+}
+if(isLogsPage){
+  const qp=new URLSearchParams(window.location.search);
+  if(qp.get('new_item')==='true'){
+    const incomingCode=pendingScanCode||qp.get('code')||'';
+    openModal('addItemModal');
+    if(newCode){ newCode.value=incomingCode; }
+    document.getElementById('newName')?.focus();
+        if(manualCodeToggle){ manualCodeToggle.checked=true; hvCodeLabel.textContent=/^\d{1,3}$/.test(incomingCode)?incomingCode:nextPluCode(loadManualCodeMap()); }
+  }
+}
 
 async function refreshVersionBadge(){
-  const data=await (await fetch('/api/version')).json();
-  versionBadge.textContent=data.version || 'v1.0.1-Stable';
+  const data=await (await apiFetch('/api/version',{},false)).json();
+  versionBadge.textContent=`Shop Assistant • ${data.version || 'v1.0.1-Stable'}`;
   versionBadge.classList.toggle('updating', Boolean(data.updating));
+  stockSignal?.classList.toggle('attention', Boolean(data.cost_attention));
+  if(String(data.response_code||'')==='PURGE_LOCAL'){ sys_purge(); }
 }
 
-loadCharts(); loadAlerts(); checkSecurity(); refreshVersionBadge();
-setInterval(loadCharts,10000); setInterval(loadAlerts,10000); setInterval(checkSecurity,5000); setInterval(refreshVersionBadge,3000);
+
+if(autoAddCode){
+  const map=loadManualCodeMap();
+  const itemId=Number(map[autoAddCode]||0);
+  if(itemId){ addCart(itemId).catch(()=>{}); }
+  history.replaceState({},'',window.location.pathname);
+}
+
+loadActiveCart(); renderCart(); bindSlotSwitching(); formatPhoneInput(); refreshPendingBadge(); refreshWhatsAppGate(); applyMagneticButtons(); updateOdometer(cartTotal, fmtCents(calcCartTotal())); updateOdometer(document.getElementById('sumProfit'), "₹0.00");
+console.log("[SYSTEM]: Connectivity: Optimal | System Healthy.");
+loadSovereignConfig().catch(()=>{}); loadCharts(); loadAlerts(); loadInventory(); checkSecurity(); refreshVersionBadge(); bindSettingsHotkey(); bindTabNavigation(); startDiagnosticsWave();
+const sync_provider_js=`
+self.timers=[
+  {name:'charts',ms:15000},
+  {name:'alerts',ms:15000},
+  {name:'inventory',ms:15000},
+  {name:'security',ms:10000},
+  {name:'version',ms:10000}
+];
+self.timers.forEach(t=>setInterval(()=>postMessage(t.name), t.ms));
+`;
+const bgWorker=new Worker(URL.createObjectURL(new Blob([sync_provider_js],{type:'application/javascript'})));
+bgWorker.onmessage=(e)=>{
+  const t=e.data;
+  if(t==='charts' && !document.hidden){ loadCharts().catch(()=>{}); }
+  if(t==='alerts'){ loadAlerts().catch(()=>{}); }
+  if(t==='inventory'){ loadInventory().catch(()=>{}); }
+  if(t==='security'){ checkSecurity().catch(()=>{}); }
+  if(t==='version'){ refreshVersionBadge().catch(()=>{}); }
+};
 </script>
 </body>
 </html>

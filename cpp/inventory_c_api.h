@@ -27,7 +27,6 @@ const char* inferno_record_sale(InfernoEngineHandle handle, int id, double qty);
 const char* inferno_get_monthly_report(InfernoEngineHandle handle);
 const char* inferno_get_system_health_backup(InfernoEngineHandle handle, int total_customer_count);
 
-// Backward-compatible aliases used by existing Python bridge
 void inferno_engine_upsert(
     InfernoEngineHandle handle,
     int id,
